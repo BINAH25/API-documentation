@@ -6,6 +6,12 @@
 3. [Game Types Endpoint](#game-types-endpoint)
 4. [Today's Sales Endpoint](#todays-sales-endpoint)
 5. [Today's Top Ups Endpoint](#todays-top-ups-endpoint)
+6. [Writer Activity Endpoint](#writer-activity-endpoint)
+7. [Top-Up Statistics Endpoint](#top-up-statistics-endpoint)
+8. [Winning Statistics Endpoint](#winning-statistics-endpoint)
+9. [Best & Worst Performance Endpoint](#best--worst-performance-endpoint)
+10. [YTD Retention Rate Endpoint](#ytd-retention-rate-endpoint)
+11. [Top 10 Writers Endpoint](#top-10-writers-endpoint)
 
 ---
 
@@ -663,3 +669,563 @@ Headers:
   "currency": "GHS"
 }
 ```
+
+## Writer Activity Endpoint
+
+### Endpoint: Get Writer Activity Statistics
+
+**Route:** `GET /api/v1/writers/active-writer-daily-stats/`
+
+**Description:** Returns historical writer activity data including total writers and active writers (those who made sales) for each day in the specified period. Useful for tracking network growth and engagement trends.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsOperatorOrAbove` (operators and admins only)
+
+### Query Parameters
+
+| Parameter | Type | Default | Range | Description |
+|-----------|------|---------|-------|-------------|
+| `days` | integer | 30 | 1-365 | Number of days to include in the report (last N days) |
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "totals": {
+    "total_writers": 1549,
+    "active_writers": 1357
+  },
+  "period": {
+    "start_date": "2026-03-05",
+    "end_date": "2026-04-03",
+    "days": 30
+  },
+  "days": [
+    {
+      "day": "2026-03-05",
+      "total_writers": 1511,
+      "active_writers": 697
+    },
+    {
+      "day": "2026-03-06",
+      "total_writers": 1512,
+      "active_writers": 63
+    },
+    {
+      "day": "2026-03-07",
+      "total_writers": 1513,
+      "active_writers": 722
+    }
+  ]
+}
+```
+
+### Response Field Descriptions
+
+#### Top-Level Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| `totals` | object | Aggregate statistics for the entire period |
+| `period` | object | Information about the requested period |
+| `days` | array | Daily breakdown of writer activity |
+
+#### Totals Object
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_writers` | integer | Total count of all writers in the system |
+| `active_writers` | integer | Count of unique writers with at least one ticket sold during the period |
+
+#### Period Object
+| Field | Type | Description |
+|-------|------|-------------|
+| `start_date` | string | Start date of the report (ISO 8601) |
+| `end_date` | string | End date of the report (ISO 8601, usually today) |
+| `days` | integer | Number of days in the report |
+
+#### Day Object (in array)
+| Field | Type | Description |
+|-------|------|-------------|
+| `day` | string | Date of the record (ISO 8601) |
+| `total_writers` | integer | Total writers in the system on this date |
+| `active_writers` | integer | Unique writers with at least one ticket sold on this date |
+
+### Example Requests
+
+**Last 30 days (default):**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/active-writer-daily-stats/" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+**Last 7 days:**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/active-writer-daily-stats/?days=7" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+**Last 90 days:**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/active-writer-daily-stats/?days=90" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+**Last year (365 days):**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/active-writer-daily-stats/?days=365" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Writer Activity:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/writers/active-writer-daily-stats/
+Headers:
+  Authorization: Bearer <access_token>
+```
+
+---
+
+## Top-Up Statistics Endpoint
+
+### Endpoint: Get Historical Top-Up Statistics
+
+**Route:** `GET /api/v1/writers/topup-statistics/`
+
+**Description:** Returns aggregated top-up amounts for various time periods (YTD, Last Week, Last Month, Last 3 Months). Useful for financial reporting and trend analysis.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsOperatorOrAbove` (operators and admins only)
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+    "ytd": {
+        "label": "YTD",
+        "total": "GHS 250.00",
+        "total_amount": 250.0
+    },
+    "last_week": {
+        "label": "Last Week",
+        "total": "GHS 0.00",
+        "total_amount": 0.0
+    },
+    "last_month": {
+        "label": "Last Month",
+        "total": "GHS 0.00",
+        "total_amount": 0.0
+    },
+    "last_3_months": {
+        "label": "Last 3 Months",
+        "total": "GHS 250.00",
+        "total_amount": 250.0
+    }
+}
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `{period}.label` | string | Human-readable period name |
+| `{period}.total` | string | Total amount formatted with currency |
+| `{period}.total_amount` | float | Numeric total for calculations |
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/topup-statistics/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Top-Up Statistics:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/writers/topup-statistics/
+Headers:
+  Authorization: Bearer <access_token>
+```
+
+---
+
+## Winning Statistics Endpoint
+
+### Endpoint: Get Historical Winning Statistics
+
+**Route:** `GET /api/v1/writers/winning-statistics/`
+
+**Description:** Returns aggregated winning amounts for various time periods (YTD, Last Week, Last Month, Last 3 Months). Useful for payout analysis and financial reporting.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsOperatorOrAbove` (operators and admins only)
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+    "ytd": {
+      "label": "YTD",
+      "total": "GHS 20,244,198.80",
+      "total_amount": 20244198.80
+    },
+    "last_week": {
+      "label": "Last Week",
+      "total": "GHS 2,197,324.80",
+      "total_amount": 2197324.80
+    },
+    "last_month": {
+      "label": "Last Month",
+      "total": "GHS 7,762,432.80",
+      "total_amount": 7762432.80
+    },
+    "last_3_months": {
+      "label": "Last 3 Months",
+      "total": "GHS 20,041,399.60",
+      "total_amount": 20041399.60
+    }
+}
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `{period}.label` | string | Human-readable period name |
+| `{period}.total` | string | Total winning amount formatted with currency |
+| `{period}.total_amount` | float | Numeric total for calculations |
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/winning-statistics/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Winning Statistics:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/writers/winning-statistics/
+Headers:
+  Authorization: Bearer <access_token>
+```
+
+---
+
+## Best & Worst Performance Endpoint
+
+### Endpoint: Get Best & Worst Performing Months
+
+**Route:** `GET /api/v1/writers/best-worst-performance/`
+
+**Description:** Returns the best performing month and worst performing month for the current year based on net profit (winnings - top-ups). Useful for identifying high-performing and underperforming periods.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsOperatorOrAbove` (operators and admins only)
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+    "best_month": {
+      "month": "Mar '26",
+      "performance": "+ GHS 1,102,384.74",
+      "net_profit": 1102384.74,
+      "topups": 0.0,
+      "wins": 1102384.74
+    },
+    "worst_month": {
+      "month": "Jan '26",
+      "performance": "- GHS 673,816.38",
+      "net_profit": -673816.38,
+      "topups": 673816.38,
+      "wins": 0.0
+    }
+}
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data.best_month` | object or null | Month with highest net profit; null if no data |
+| `data.worst_month` | object or null | Month with lowest net profit; null if no data |
+| `best_month.month` | string | Month and year abbreviation (e.g., "Mar '26") |
+| `best_month.performance` | string | Formatted net profit with +/- sign and currency |
+| `best_month.net_profit` | float | Net profit amount (wins - topups) |
+| `best_month.topups` | float | Total top-ups for the month |
+| `best_month.wins` | float | Total winnings for the month |
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/best-worst-performance/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Best & Worst Performance:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/writers/best-worst-performance/
+Headers:
+  Authorization: Bearer <access_token>
+```
+---
+
+## YTD Retention Rate Endpoint
+
+### Endpoint: Get YTD Retention Rate
+
+**Route:** `GET /api/v1/writers/retention-rate/`
+
+**Description:** Returns YTD retention rate metrics including gross sales, net income (payouts), retention amount, and retention rate percentage.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsOperatorOrAbove` (operators and admins only)
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "gross_sales": 21790804.42,
+  "net_income": 20244198.80,
+  "retention_amount": 1546605.62,
+  "retention_rate": "7.09%"
+}
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `gross_sales` | float | Total winnings for YTD (all wins regardless of status) |
+| `net_income` | float | Winnings claimed by players (payouts) |
+| `retention_amount` | float | Amount retained = gross_sales - net_income |
+| `retention_rate` | string | Retention percentage formatted as "X.XX%" |
+
+### Calculation Method
+
+```
+Gross Sales = Sum of all wins (CLAIMED + PENDING + EXPIRED + VOIDED)
+Net Income = Sum of CLAIMED wins only (money paid to players)
+Retention Amount = Gross Sales - Net Income
+Retention Rate = (Retention Amount / Gross Sales) × 100, formatted as "X.XX%"
+
+```
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/retention-rate/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Retention Rate:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/writers/retention-rate/
+Headers:
+  Authorization: Bearer <access_token>
+```
+
+---
+
+
+## Top 10 Writers Endpoint
+
+### Endpoint: Get Top 10 Writers Year-to-Date
+
+**Route:** `GET /api/v1/writers/top-10-writers/`
+
+**Description:** Returns the top 10 writers for the current year ranked by net profit (winnings - top-ups). Useful for identifying top performers, creating leaderboards, and analyzing writer productivity.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsOperatorOrAbove` (operators and admins only)
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+[
+    {
+      "rank": 1,
+      "writer_id": 42,
+      "writer_name": "Kwesi Mensah",
+      "photo_url": "https://onassismystrocore-production.up.railway.app/media/writers/photos/kwesi_photo.jpg",
+      "total_wins": {
+        "formatted": "GHS 25,000,000.00",
+        "amount": 25000000.0
+      },
+      "total_topups": {
+        "formatted": "GHS 3,000,000.00",
+        "amount": 3000000.0
+      },
+      "net_profit": {
+        "formatted": "+ GHS 22,000,000.00",
+        "amount": 22000000.0
+      },
+      "ticket_count": 1250
+    },
+    {
+      "rank": 2,
+      "writer_id": 23,
+      "writer_name": "Prosper Owusu",
+      "photo_url": "https://onassismystrocore-production.up.railway.app/media/writers/photos/prosper_photo.jpg",
+      "total_wins": {
+        "formatted": "GHS 18,500,000.00",
+        "amount": 18500000.0
+      },
+      "total_topups": {
+        "formatted": "GHS 2,500,000.00",
+        "amount": 2500000.0
+      },
+      "net_profit": {
+        "formatted": "+ GHS 16,000,000.00",
+        "amount": 16000000.0
+      },
+      "ticket_count": 950
+    }
+]
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rank` | integer | Position in leaderboard (1-10) |
+| `writer_id` | integer | Unique writer identifier |
+| `writer_name` | string | Writer's full name |
+| `photo_url` | string or null | Full URL to writer's profile picture (null if not available) |
+| `total_wins` | object | Total winnings for YTD |
+| `total_wins.formatted` | string | Formatted amount (e.g., "GHS 25,000,000.00") |
+| `total_wins.amount` | float | Numeric value for calculations |
+| `total_topups` | object | Total top-ups invested YTD |
+| `total_topups.formatted` | string | Formatted amount with GHS and commas |
+| `total_topups.amount` | float | Numeric value for calculations |
+| `net_profit` | object | Net profit (wins - topups) |
+| `net_profit.formatted` | string | Formatted with sign indicator |
+| `net_profit.amount` | float | Numeric value (positive or negative) |
+| `ticket_count` | integer | Number of tickets sold YTD |
+### Calculation Method
+
+```
+Net Profit = Total Wins - Total Top-Ups
+Ranking = Sorted by Net Profit descending
+
+Writers Included:
+- Must have at least one win OR one top-up in YTD
+- Ranked by net profit (highest to lowest)
+- Top 10 only returned
+
+Time Period: January 1 to present (current year only)
+```
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/top-10-writers/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Top 10 Writers:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/writers/top-10-writers/
+Headers:
+  Authorization: Bearer <access_token>
+```
+---
+
+## Last Updated
+April 3, 2026
+
+## API Version
+v1
