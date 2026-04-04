@@ -804,7 +804,7 @@ Headers:
 
 ### Endpoint: Get Historical Top-Up Statistics
 
-**Route:** `GET /api/v1/writers/topup-statistics/`
+**Route:** `GET /api/v1/financials/dashboard/topup-statistics/`
 
 **Description:** Returns aggregated top-up amounts for various time periods (YTD, Last Week, Last Month, Last 3 Months). Useful for financial reporting and trend analysis.
 
@@ -852,7 +852,7 @@ Headers:
 ### Example Request
 
 ```bash
-curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/topup-statistics/ \
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/topup-statistics/ \
   -H "Authorization: Bearer <your-jwt-token>" \
   -H "Content-Type: application/json"
 ```
@@ -871,7 +871,7 @@ Body:
 
 2. **Get Top-Up Statistics:**
 ```
-GET https://onassismystrocore-production.up.railway.app/api/v1/writers/topup-statistics/
+GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/topup-statistics/
 Headers:
   Authorization: Bearer <access_token>
 ```
@@ -882,7 +882,7 @@ Headers:
 
 ### Endpoint: Get Historical Winning Statistics
 
-**Route:** `GET /api/v1/writers/winning-statistics/`
+**Route:** `GET /api/v1/financials/dashboard/winning-statistics/`
 
 **Description:** Returns aggregated winning amounts for various time periods (YTD, Last Week, Last Month, Last 3 Months). Useful for payout analysis and financial reporting.
 
@@ -930,7 +930,7 @@ Headers:
 ### Example Request
 
 ```bash
-curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/winning-statistics/ \
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/winning-statistics/ \
   -H "Authorization: Bearer <your-jwt-token>" \
   -H "Content-Type: application/json"
 ```
@@ -949,7 +949,7 @@ Body:
 
 2. **Get Winning Statistics:**
 ```
-GET https://onassismystrocore-production.up.railway.app/api/v1/writers/winning-statistics/
+GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/winning-statistics/
 Headers:
   Authorization: Bearer <access_token>
 ```
@@ -960,7 +960,7 @@ Headers:
 
 ### Endpoint: Get Best & Worst Performing Months
 
-**Route:** `GET /api/v1/writers/best-worst-performance/`
+**Route:** `GET /api/v1/financials/dashboard/best-worst-performance/`
 
 **Description:** Returns the best performing month and worst performing month for the current year based on net profit (winnings - top-ups). Useful for identifying high-performing and underperforming periods.
 
@@ -1006,7 +1006,7 @@ Headers:
 ### Example Request
 
 ```bash
-curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/best-worst-performance/ \
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/best-worst-performance/ \
   -H "Authorization: Bearer <your-jwt-token>" \
   -H "Content-Type: application/json"
 ```
@@ -1025,7 +1025,7 @@ Body:
 
 2. **Get Best & Worst Performance:**
 ```
-GET https://onassismystrocore-production.up.railway.app/api/v1/writers/best-worst-performance/
+GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/best-worst-performance/
 Headers:
   Authorization: Bearer <access_token>
 ```
@@ -1035,7 +1035,7 @@ Headers:
 
 ### Endpoint: Get YTD Retention Rate
 
-**Route:** `GET /api/v1/writers/retention-rate/`
+**Route:** `GET /api/v1/financials/dashboard/retention-rate/`
 
 **Description:** Returns YTD retention rate metrics including gross sales, net income (payouts), retention amount, and retention rate percentage.
 
@@ -1078,7 +1078,7 @@ Retention Rate = (Retention Amount / Gross Sales) × 100, formatted as "X.XX%"
 ### Example Request
 
 ```bash
-curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/retention-rate/ \
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/retention-rate/ \
   -H "Authorization: Bearer <your-jwt-token>" \
   -H "Content-Type: application/json"
 ```
@@ -1097,7 +1097,7 @@ Body:
 
 2. **Get Retention Rate:**
 ```
-GET https://onassismystrocore-production.up.railway.app/api/v1/writers/retention-rate/
+GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/retention-rate/
 Headers:
   Authorization: Bearer <access_token>
 ```
