@@ -1,17 +1,32 @@
 # API Endpoints Documentation
 
 ## Table of Contents
+### Sales Page
 1. [Writer Statistics Endpoint](#writer-statistics-endpoint)
 2. [Detailed Tickets Endpoint](#detailed-tickets-endpoint)
 3. [Game Types Endpoint](#game-types-endpoint)
 4. [Today's Sales Endpoint](#todays-sales-endpoint)
 5. [Today's Top Ups Endpoint](#todays-top-ups-endpoint)
+
+### Analytics
 6. [Writer Activity Endpoint](#writer-activity-endpoint)
 7. [Top-Up Statistics Endpoint](#top-up-statistics-endpoint)
 8. [Winning Statistics Endpoint](#winning-statistics-endpoint)
 9. [Best & Worst Performance Endpoint](#best--worst-performance-endpoint)
 10. [YTD Retention Rate Endpoint](#ytd-retention-rate-endpoint)
 11. [Top 10 Writers Endpoint](#top-10-writers-endpoint)
+
+### LMCs
+12. [Available LMC Owners Endpoint](#available-lmc-owners-endpoint)
+13. [Register LMC Endpoint](#register-lmc-endpoint)
+14. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
+15. [LMC Writers Overview Endpoint](#lmc-writers-overview-endpoint)
+16. [LMC Transactions Endpoint](#lmc-transactions-endpoint)
+
+### Draws & Winnings
+17. [Draws & Winnings Endpoint](#draws--winnings-endpoint)
+18. [Draws & Winnings Table Endpoint](#draws--winnings-table-endpoint)
+19. [Draw Event Tickets Endpoint](#draw-event-tickets-endpoint)
 
 ---
 
@@ -1224,8 +1239,1004 @@ Headers:
 ```
 ---
 
+## Available LMC Owners Endpoint
+
+### Overview
+Returns a list of users with the `lmc_owner` role who are **not yet assigned** to an LMC. Useful for populating the owner dropdown when registering a new LMC.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/auth/users/available-lmc-owners/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/auth/users/available-lmc-owners/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "email": "owner@example.com",
+    "first_name": "Kwame",
+    "last_name": "Mensah",
+    "full_name": "Kwame Mensah",
+    "phone": "+233501234567",
+    "role": "lmc_owner",
+    "is_active": true,
+    "photo": null
+  }
+]
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | User's unique identifier |
+| `email` | string | User's email address |
+| `first_name` | string | User's first name |
+| `last_name` | string | User's last name |
+| `full_name` | string | Computed full name |
+| `phone` | string | User's phone number |
+| `role` | string | Always `lmc_owner` |
+| `is_active` | boolean | Account active status |
+| `photo` | string/null | URL to profile photo or null |
+
+### Notes
+- Only returns users with `role=lmc_owner` who do **not** already have an LMC assigned
+- Results are ordered alphabetically by first name, then last name
+- Returns an empty list `[]` if all LMC owners are already assigned
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/auth/users/available-lmc-owners/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+---
+
+## Register LMC Endpoint
+
+### Overview
+Creates a new LMC (Lotto Marketing Company) assigned to an existing `lmc_owner` user. Automatically generates a sequential LMC code (e.g. `LMC-0001`) and creates an airtime wallet for the new LMC.
+
+### Request
+
+**Method:** `POST`
+
+**Route:** `/api/v1/lmc/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+### Request Body
+
+```json
+{
+  "owner": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "address": "123 Main Street, Accra",
+  "is_active": true
+}
+```
+
+### Request Field Descriptions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `owner` | UUID | Yes | UUID of an `lmc_owner` user (use Available LMC Owners endpoint to get valid IDs) |
+| `address` | string | No | Physical address of the LMC |
+| `is_active` | boolean | No | Whether the LMC is active (defaults to `true`) |
+
+### Response Format
+
+**Status Code:** `201 Created`
+
+```json
+{
+  "id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+  "code": "LMC-0025",
+  "name": "Kwame Mensah",
+  "phone": "+233501234567",
+  "address": "123 Main Street, Accra",
+  "owner": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "full_name": "Kwame Mensah",
+    "phone": "+233501234567",
+    "photo": null
+  },
+  "is_active": true,
+  "created_at": "2026-04-05T12:00:00Z",
+  "updated_at": "2026-04-05T12:00:00Z"
+}
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | LMC's unique identifier |
+| `code` | string | Auto-generated sequential code (e.g. `LMC-0025`) |
+| `name` | string | Owner's full name |
+| `phone` | string | Owner's phone number |
+| `address` | string | LMC physical address |
+| `owner` | object | Owner user summary |
+| `is_active` | boolean | Whether the LMC is active |
+| `created_at` | datetime | Creation timestamp |
+| `updated_at` | datetime | Last update timestamp |
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing or invalid `owner` UUID |
+| `400 Bad Request` | Owner already assigned to another LMC (unique constraint) |
+| `401 Unauthorized` | Missing or invalid token |
+| `403 Forbidden` | User role is below Operator |
+
+### Workflow: Register a New LMC
+
+1. **Get available owners:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/auth/users/available-lmc-owners/
+```
+
+2. **Pick an owner UUID from the response, then register:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/lmc/
+Body:
+{
+  "owner": "<owner-uuid-from-step-1>",
+  "address": "123 Main Street, Accra"
+}
+```
+
+---
+
+## LMC Detail Cards Endpoint
+
+### Overview
+Returns all LMCs with an operational snapshot (live writer counts + POS data) and financial aggregates for the current month. Designed for the LMC list/dashboard view where each LMC is shown as a card.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/lmc/detail-cards/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/detail-cards/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above sees all LMCs; LMC owner sees only their own
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+[
+  {
+    "id": "1a0dadec-9498-4a66-a51f-8345ae433c32",
+    "code": "LMC-0004",
+    "name": "Sallyrich Blessed Enterprise",
+    "phone": "+233501234567",
+    "address": "P.O. Box 123, Accra",
+    "photo_url": null,
+    "is_active": true,
+    "operational": {
+      "snapshot_date": "2026-03-01",
+      "active": 10,
+      "passive": 0,
+      "inactive": 0,
+      "recover": 0,
+      "no_use": 0,
+      "writers_total": 10,
+      "pos_issued": 20,
+      "pos_trading": 15,
+      "pos_recovery": 5
+    },
+    "financial": {
+      "wallet_balance": "1500.00",
+      "monthly_topups": "5000.00",
+      "monthly_sales": "12000.00",
+      "monthly_commissions": "350.00"
+    }
+  }
+]
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | LMC unique identifier |
+| `code` | string | LMC code (e.g. `LMC-0004`) |
+| `name` | string | Owner's full name |
+| `phone` | string | Owner's phone number |
+| `address` | string | LMC physical address |
+| `photo_url` | string/null | Owner's profile photo URL or null |
+| `is_active` | boolean | Whether the LMC is active |
+| **`operational`** | object | Live writer counts + POS from latest snapshot |
+| `operational.snapshot_date` | string/null | Date of latest snapshot (null if none exists) |
+| `operational.active` | integer | **Live** count of writers with status `active` |
+| `operational.passive` | integer | **Live** count of writers with status `passive` |
+| `operational.inactive` | integer | **Live** count of writers with status `inactive` |
+| `operational.recover` | integer | **Live** count of writers with status `recover` |
+| `operational.no_use` | integer | **Live** count of writers with status `no_use` |
+| `operational.writers_total` | integer | **Live** total writer count |
+| `operational.pos_issued` | integer | POS devices issued (from snapshot) |
+| `operational.pos_trading` | integer | POS devices trading (from snapshot) |
+| `operational.pos_recovery` | integer | POS devices in recovery (from snapshot) |
+| **`financial`** | object | Current month financial aggregates |
+| `financial.wallet_balance` | decimal | Current airtime wallet balance |
+| `financial.monthly_topups` | decimal | Total top-ups given to writers this month |
+| `financial.monthly_sales` | decimal | Total ticket sales this month |
+| `financial.monthly_commissions` | decimal | Total commissions earned this month |
+
+### Data Source Notes
+
+| Field Category | Source |
+|----------------|--------|
+| Writer status counts (active, passive, etc.) | **Live** — queried from `Writer` table in real-time |
+| POS counts (issued, trading, recovery) | **Snapshot** — from latest `LMCDailySnapshot` |
+| Financial aggregates | **Live** — aggregated from current month transactions |
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/lmc/detail-cards/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+---
+
+## LMC Writers Overview Endpoint
+
+### Overview
+Returns detailed information for a single LMC: LMC info header, YTD summary cards with contribution ratios, and a paginated/filterable writers table. Designed for the LMC detail view.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/lmc/{id}/writers-overview/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/writers-overview/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above; LMC owner for their own LMC
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter writers by status: `active`, `passive`, `inactive`, `recover`, `no_use` |
+| `search` | string | Search writers by name |
+| `page` | integer | Page number (default: 1) |
+| `page_size` | integer | Results per page (default: 10, max: 1000) |
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "lmc_info": {
+    "name": "Sallyrich Blessed Enterprise",
+    "address": "P.O. Box 123, Accra",
+    "phone": "+233501234567",
+    "pos_issued": 20,
+    "pos_trading": 15,
+    "wallet_balance": "1500.00"
+  },
+  "summary": {
+    "ytd_sales": "45000.00",
+    "ytd_topups": "12000.00",
+    "ytd_winnings": "8500.00",
+    "writers_count": 10,
+    "ytd_sales_ratio": 15,
+    "ytd_topups_ratio": 12,
+    "ytd_winnings_ratio": 8,
+    "writers_ratio": 5
+  },
+  "writers": {
+    "count": 10,
+    "next": "https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/writers-overview/?page=2",
+    "previous": null,
+    "results": [
+      {
+        "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+        "name": "Gloria Aballa",
+        "contact": "+233549698956",
+        "sign_up_date": "2025-06-15T09:30:00Z",
+        "dop": 295,
+        "dot": 42,
+        "ytd_sales": "5580.00",
+        "ytd_topups": "3240.00",
+        "status": "active"
+      }
+    ]
+  }
+}
+```
+
+### Response Field Descriptions
+
+#### `lmc_info` — LMC header information
+
+| Field | Type | Source | Description |
+|-------|------|--------|-------------|
+| `name` | string | Live | Owner's full name |
+| `address` | string | Live | LMC physical address |
+| `phone` | string | Live | Owner's phone number |
+| `pos_issued` | integer | Snapshot | POS devices issued (0 if no snapshot) |
+| `pos_trading` | integer | Snapshot | POS devices trading (0 if no snapshot) |
+| `wallet_balance` | decimal | Live | Current airtime wallet balance |
+
+#### `summary` — YTD summary cards
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ytd_sales` | decimal | Year-to-date total ticket sales for this LMC |
+| `ytd_topups` | decimal | Year-to-date total top-ups for this LMC |
+| `ytd_winnings` | decimal | Year-to-date total winnings for this LMC |
+| `writers_count` | integer | Live count of writers belonging to this LMC |
+| `ytd_sales_ratio` | integer | This LMC's sales as a % of all LMCs (0–100) |
+| `ytd_topups_ratio` | integer | This LMC's top-ups as a % of all LMCs (0–100) |
+| `ytd_winnings_ratio` | integer | This LMC's winnings as a % of all LMCs (0–100) |
+| `writers_ratio` | integer | This LMC's writer count as a % of all writers (0–100) |
+
+#### `writers` — Paginated writer table
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | integer | Total number of writers (before pagination) |
+| `next` | string/null | URL for the next page |
+| `previous` | string/null | URL for the previous page |
+| `results` | array | Array of writer row objects |
+
+#### Writer row fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Writer's unique identifier |
+| `name` | string | Writer's full name |
+| `contact` | string | Writer's phone number |
+| `sign_up_date` | datetime | When the writer was created |
+| `dop` | integer | Days on platform (days since sign-up) |
+| `dot` | integer | Days of trading (distinct days with sales YTD) |
+| `ytd_sales` | decimal | Writer's year-to-date ticket sales |
+| `ytd_topups` | decimal | Writer's year-to-date top-ups received |
+| `status` | string | Writer's current status (`active`, `passive`, `inactive`, `recover`, `no_use`) |
+
+### Example Requests
+
+**Basic request:**
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/writers-overview/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+**With filters:**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/writers-overview/?status=active&search=Gloria&page=1" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Writers Overview:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/writers-overview/
+Headers:
+  Authorization: Bearer <access_token>
+```
+
+---
+
+## LMC Transactions Endpoint
+
+### Overview
+Returns a unified, paginated transaction ledger for a single LMC. Merges commissions (earned from writer top-ups), top-ups (LMC → writer transfers), and deposits (money into LMC wallet) into one chronological list with a running balance column. Supports tab-style filtering by transaction type, date range, and source search.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/lmc/{id}/transactions/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/transactions/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above; LMC owner for their own LMC
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | string | Filter by transaction type: `commission`, `topup`, `transfer` (maps to UI tabs: Commissions, Top-ups, Transfers). Omit for "View All". |
+| `search` | string | Search by source name or phone number |
+| `date_from` | string | Start date filter (YYYY-MM-DD) |
+| `date_to` | string | End date filter (YYYY-MM-DD) |
+| `page` | integer | Page number (default: 1) |
+| `page_size` | integer | Results per page (default: 30, max: 1000) |
+
+### UI Tab Mapping
+
+| UI Tab | Query |
+|--------|-------|
+| **View All** | No `type` parameter |
+| **Commissions** | `?type=commission` |
+| **Top-ups** | `?type=topup` |
+| **Transfers** | `?type=transfer` |
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "count": 579,
+  "next": "https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/transactions/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "date": "Sun, 05 April 2026",
+      "time": "03:56 PM",
+      "type": "commission",
+      "source_name": "Bemah Rose",
+      "source_phone": "0598195262",
+      "reference": null,
+      "amount": "2.10",
+      "balance": "4344.71"
+    },
+    {
+      "date": "Sun, 05 April 2026",
+      "time": "03:54 PM",
+      "type": "commission",
+      "source_name": "Mark Owusu Ansah",
+      "source_phone": "0240375694",
+      "reference": null,
+      "amount": "0.88",
+      "balance": "4342.61"
+    },
+    {
+      "date": "Sun, 05 April 2026",
+      "time": "03:26 PM",
+      "type": "topup",
+      "source_name": "Simon Ackachie",
+      "source_phone": "0591385282",
+      "reference": "LMCXFR-A1B2C3D4E5F6",
+      "amount": "50.00",
+      "balance": "4339.55"
+    },
+    {
+      "date": "Sat, 04 April 2026",
+      "time": "10:30 AM",
+      "type": "transfer",
+      "source_name": null,
+      "source_phone": "0551234567",
+      "reference": "LMCDEP-XYZ789ABC123",
+      "amount": "500.00",
+      "balance": "4200.00"
+    }
+  ]
+}
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `date` | string | Formatted date (e.g. "Sun, 05 April 2026") |
+| `time` | string | Formatted time (e.g. "03:56 PM") |
+| `type` | string | Transaction type: `commission`, `topup`, or `transfer` |
+| `source_name` | string/null | Writer's full name (null for deposits) |
+| `source_phone` | string/null | Writer's phone or mobile money number |
+| `reference` | string/null | Payment reference (null for commissions) |
+| `amount` | decimal | Transaction amount in GHS |
+| `balance` | decimal | Running wallet balance after this transaction |
+
+### Transaction Types
+
+| Type | Direction | Description |
+|------|-----------|-------------|
+| `commission` | **IN** (+) | Commission earned from a writer's top-up (3.5% of top-up amount) |
+| `topup` | **OUT** (-) | Airtime transferred from LMC wallet to a writer |
+| `transfer` | **IN** (+) | Deposit into LMC wallet (via mobile money) |
+
+### Running Balance
+
+The `balance` field is a running balance computed from the current wallet balance, walking backwards through the transaction history. The newest transaction shows the current wallet balance, and each older transaction shows what the balance was at that point in time.
+
+### Notes
+- Only **successful** transfers are included (pending/failed transfers are excluded)
+- Transactions are sorted newest-first by `created_at`
+- The balance column matches the LMC's airtime wallet balance
+
+### Example Requests
+
+**View All (no filter):**
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/ \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+**Commissions tab only:**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/?type=commission" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+**Search by writer name:**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/?search=Bemah" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+**Date range filter:**
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/?date_from=2026-04-01&date_to=2026-04-05" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+---
+
+## Draws & Winnings Endpoint
+
+### Endpoint: Get YTD Draws & Winnings
+
+**Route:** `GET /api/v1/financials/dashboard/draws-and-winnings/`
+
+**Description:** Returns year-to-date Draws & Winnings dashboard data in three card groups: YTD Sales, YTD Winnings (with claimed/unclaimed breakdown), and YTD Gross Gaming Revenue (with retention rate). Most data reads from the pre-computed `YTDSummary` model (updated nightly by Celery). The unique player count is a live distinct query on `Ticket.player_phone`.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsOperatorOrAbove` (operators and admins only)
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "ytd_sales": {
+    "total_sales": "GHS 34,806,983.08",
+    "total_sales_amount": 34806983.08,
+    "unique_players": 56189,
+    "total_coupons": 741002,
+    "total_stakes": 20562983
+  },
+  "ytd_winnings": {
+    "total_winnings": "GHS 20,687,915.60",
+    "total_winnings_amount": 20687915.60,
+    "claimed": "GHS 20,553,513.20",
+    "claimed_amount": 20553513.20,
+    "unclaimed": "GHS 134,402.40",
+    "unclaimed_amount": 134402.40
+  },
+  "ytd_ggr": {
+    "gross_gaming_revenue": "GHS 14,119,067.48",
+    "gross_gaming_revenue_amount": 14119067.48,
+    "retention_rate": "4.49%",
+    "retention_rate_value": 4.49,
+    "retention_value": "GHS 1,564,033.54",
+    "retention_value_amount": 1564033.54
+  }
+}
+```
+
+### Response Field Descriptions
+
+#### YTD Sales Card
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_sales` | string | Formatted YTD total ticket sales (e.g. "GHS 34,806,983.08") |
+| `total_sales_amount` | float | Raw numeric value of total sales |
+| `unique_players` | integer | Count of distinct `player_phone` values on valid tickets this year (live query) |
+| `total_coupons` | integer | Total ticket count YTD (referred to as "coupons" in the UI) |
+| `total_stakes` | integer | Total individual stake/line count across all tickets YTD |
+
+#### YTD Winnings Card
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_winnings` | string | Formatted total win amount YTD |
+| `total_winnings_amount` | float | Raw numeric value of total winnings |
+| `claimed` | string | Formatted amount of winnings already claimed by players |
+| `claimed_amount` | float | Raw numeric value of claimed winnings |
+| `unclaimed` | string | Formatted amount of winnings not yet claimed (pending + expired) |
+| `unclaimed_amount` | float | Raw numeric value of unclaimed winnings |
+
+#### YTD Gross Gaming Revenue Card
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `gross_gaming_revenue` | string | Formatted GGR = total_sales − total_winnings |
+| `gross_gaming_revenue_amount` | float | Raw numeric value of GGR |
+| `retention_rate` | string | YTD retention rate formatted as "X.XX%" |
+| `retention_rate_value` | float | Raw numeric retention rate percentage |
+| `retention_value` | string | Formatted monetary value of retention = total_sales × retention_rate / 100 |
+| `retention_value_amount` | float | Raw numeric retention monetary value |
+
+### UI Card Mapping
+
+| UI Card | Response Section | Key Fields |
+|---------|-----------------|------------|
+| **YTD Sales** (left) | `ytd_sales` | `total_sales`, `unique_players`, `total_coupons`, `total_stakes` |
+| **YTD Winnings** (center) | `ytd_winnings` | `total_winnings`, `claimed`, `unclaimed` |
+| **YTD Gross Gaming Revenue** (right) | `ytd_ggr` | `gross_gaming_revenue`, `retention_rate`, `retention_value` |
+
+### Data Sources
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| Total sales, tickets, stakes, wins, GGR, retention rate | `YTDSummary` | Pre-computed nightly by Celery |
+| Unique players | Live `Ticket` query | `COUNT(DISTINCT player_phone)` for current year, excluding blank phones and cancelled tickets |
+
+### Calculation Methods
+
+```
+GGR = total_sales − total_winnings
+Retention Value = total_sales × retention_rate ÷ 100
+Unclaimed = total_winnings − claimed
+```
+
+### Example Request
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/draws-and-winnings/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json"
+```
+
+### Postman Example
+
+1. **Login:**
+```
+POST https://onassismystrocore-production.up.railway.app/api/v1/auth/login/
+Body:
+{
+  "email": "operator@example.com",
+  "password": "password"
+}
+```
+
+2. **Get Draws & Winnings:**
+```
+GET https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/draws-and-winnings/
+Headers:
+  Authorization: Bearer <access_token>
+```
+
+---
+
+## Draws & Winnings Table Endpoint
+
+Returns a paginated list of drawn events with result data for the Draws & Winnings drill-down table.
+
+### URL
+`GET /api/v1/games/events/draws-and-winnings/`
+
+### Authentication
+JWT Bearer token required.
+
+### Permissions
+- **Writer or above** (`IsWriterOrAbove`)
+
+### Query Parameters
+
+| Parameter        | Type   | Required | Description                              |
+| ---------------- | ------ | -------- | ---------------------------------------- |
+| `game_type`      | UUID   | No       | Filter by game type ID                   |
+| `status`         | string | No       | Filter by event status                   |
+| `draw_date`      | date   | No       | Filter by exact draw date (YYYY-MM-DD)   |
+| `draw_date__gte` | date   | No       | Draw date greater than or equal           |
+| `draw_date__lte` | date   | No       | Draw date less than or equal              |
+| `page`           | int    | No       | Page number (default: 1)                 |
+| `page_size`      | int    | No       | Results per page (default: 20)           |
+
+### Response — `200 OK`
+
+```json
+{
+  "count": 42,
+  "next": "http://…?page=2",
+  "previous": null,
+  "results": [
+    {
+      "event_id": "a1b2c3d4-…",
+      "event_no": 1234,
+      "draw_date": "Sat, 05 Apr 2026",
+      "event_name": "5/90 Original",
+      "draw_time": "18:54:37",
+      "pre_draw": "GHS 5,000.00",
+      "pre_draw_amount": 5000.0,
+      "draw_numbers": [5, 14, 29, 56, 51],
+      "machine_numbers": [22, 33, 44, 55, 66],
+      "post_draw_1": "GHS 1,200.00",
+      "post_draw_1_amount": 1200.0,
+      "post_draw_2": "GHS 800.00",
+      "post_draw_2_amount": 800.0,
+      "payout_ratio": "46.00%",
+      "payout_ratio_value": 46.0,
+      "total_winnings": "GHS 2,300.00",
+      "total_winnings_amount": 2300.0
+    }
+  ]
+}
+```
+
+### Row Fields
+
+| Field                  | Type   | Description                                            |
+| ---------------------- | ------ | ------------------------------------------------------ |
+| `event_id`             | UUID   | DrawEvent primary key                                  |
+| `event_no`             | int    | Sequential event number                                |
+| `draw_date`            | string | Formatted date (e.g. "Sat, 05 Apr 2026")              |
+| `event_name`           | string | Event/game name                                        |
+| `draw_time`            | string | Draw time in HH:MM:SS format                           |
+| `pre_draw`             | string | Pre-draw sales formatted as GHS                        |
+| `pre_draw_amount`      | float  | Raw pre-draw sales value                               |
+| `draw_numbers`         | array  | Drawn numbers (e.g. [5, 14, 29, 56, 51])              |
+| `machine_numbers`      | array  | Machine-generated numbers                              |
+| `post_draw_1`          | string | Post-draw I sales formatted as GHS                     |
+| `post_draw_1_amount`   | float  | Raw post-draw I value                                  |
+| `post_draw_2`          | string | Post-draw II sales formatted as GHS                    |
+| `post_draw_2_amount`   | float  | Raw post-draw II value                                 |
+| `payout_ratio`         | string | Payout ratio formatted as percentage                   |
+| `payout_ratio_value`   | float  | Raw payout ratio value                                 |
+| `total_winnings`       | string | Total winnings formatted as GHS                        |
+| `total_winnings_amount`| float  | Raw total winnings value                               |
+
+### Notes
+- Only events with status `DRAWN` and an attached `DrawResult` are returned.
+- Results are ordered newest-first by `draw_date` then `draw_time`.
+- Clicking a row's "Pre-Draw" value opens the [Draw Event Tickets](#draw-event-tickets-endpoint) modal.
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/games/events/draws-and-winnings/
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+---
+
+## Draw Event Tickets Endpoint
+
+Returns the paginated ticket list for a specific draw event (the "Pre Draw Tickets" modal). Each ticket includes its nested stakes with full detail (game, play type, numbers, writer info).
+
+### URL
+`GET /api/v1/games/events/{id}/tickets/`
+
+### Authentication
+JWT Bearer token required.
+
+### Permissions
+- **Writer or above** (`IsWriterOrAbove`)
+
+### Path Parameters
+
+| Parameter | Type | Required | Description       |
+| --------- | ---- | -------- | ----------------- |
+| `id`      | UUID | Yes      | DrawEvent UUID    |
+
+### Query Parameters
+
+| Parameter   | Type   | Required | Description                                              |
+| ----------- | ------ | -------- | -------------------------------------------------------- |
+| `search`    | string | No       | Filter by ticket number, writer name, or player phone    |
+| `page`      | int    | No       | Page number (default: 1)                                 |
+| `page_size` | int    | No       | Results per page (default: 20)                           |
+
+### Response — `200 OK`
+
+```json
+{
+  "event": {
+    "event_no": 1234,
+    "event_name": "5/90 Original",
+    "draw_numbers": [5, 14, 29, 56, 51],
+    "total_wins": "GHS 2,300.00",
+    "total_wins_amount": 2300.0,
+    "payout_ratio": "46.00%",
+    "payout_ratio_value": 46.0,
+    "draw_date": "Sat, 05 Apr 2026",
+    "draw_time": "18:54:37"
+  },
+  "tickets": {
+    "count": 25,
+    "next": "http://…?page=2",
+    "previous": null,
+    "results": [
+      {
+        "ticket_id": "b2c3d4e5-…",
+        "ticket_no": "123456789012345678901234567",
+        "stake_count": 3,
+        "stake_value": "GHS 15.00",
+        "stake_value_amount": 15.0,
+        "datetime": "Sat, 05 Apr 2026",
+        "staked_by": "Kwame Asante",
+        "phone_number": "+233501234567",
+        "status": "active",
+        "stakes": [
+          {
+            "stake_id": "c3d4e5f6-…",
+            "created_at": "2026-04-05 14:30:00",
+            "game": {
+              "id": "11111111-1111-4111-b111-111111111111",
+              "name": "5/90 Original",
+              "code": "590_OG"
+            },
+            "event_id": "a1b2c3d4-…",
+            "event": "5/90 Original - April 05, 2026",
+            "play_group": "Direct",
+            "play": "Direct 2 (2 Sure)",
+            "numbers": "5,14",
+            "stake_amount": "10.00",
+            "original_numbers": "5,14",
+            "player_phone": "+233501234567",
+            "stake_status": "ACTIVE",
+            "writer": {
+              "id": "1",
+              "name": "Kwame Asante",
+              "phone": "+233241110001"
+            }
+          },
+          {
+            "stake_id": "d4e5f6g7-…",
+            "created_at": "2026-04-05 14:30:00",
+            "game": {
+              "id": "11111111-1111-4111-b111-111111111111",
+              "name": "5/90 Original",
+              "code": "590_OG"
+            },
+            "event_id": "a1b2c3d4-…",
+            "event": "5/90 Original - April 05, 2026",
+            "play_group": "Perm",
+            "play": "Perm 2",
+            "numbers": "10,25,47",
+            "stake_amount": "5.00",
+            "original_numbers": "10,25,47",
+            "player_phone": "+233501234567",
+            "stake_status": "ACTIVE",
+            "writer": {
+              "id": "1",
+              "name": "Kwame Asante",
+              "phone": "+233241110001"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Event Header Fields
+
+| Field                | Type   | Description                               |
+| -------------------- | ------ | ----------------------------------------- |
+| `event_no`           | int    | Sequential event number                   |
+| `event_name`         | string | Event/game name                           |
+| `draw_numbers`       | array  | Drawn numbers                             |
+| `total_wins`         | string | Total winnings formatted as GHS           |
+| `total_wins_amount`  | float  | Raw total winnings value                  |
+| `payout_ratio`       | string | Payout ratio formatted as percentage      |
+| `payout_ratio_value` | float  | Raw payout ratio value                    |
+| `draw_date`          | string | Formatted draw date                       |
+| `draw_time`          | string | Draw time in HH:MM:SS format              |
+
+### Ticket Row Fields
+
+| Field               | Type   | Description                              |
+| ------------------- | ------ | ---------------------------------------- |
+| `ticket_id`         | UUID   | Ticket primary key                       |
+| `ticket_no`         | string | Unique ticket number                     |
+| `stake_count`       | int    | Number of stakes on the ticket           |
+| `stake_value`       | string | Total stake value formatted as GHS       |
+| `stake_value_amount`| float  | Raw total stake value                    |
+| `datetime`          | string | Formatted sold-at date                   |
+| `staked_by`         | string | Writer's full name                       |
+| `phone_number`      | string | Player phone number                      |
+| `status`            | string | Ticket status (active/won/lost/claimed)  |
+| `stakes`            | array  | Nested list of stakes (see below)        |
+
+### Nested Stake Fields
+
+| Field              | Type       | Description                                                  |
+| ------------------ | ---------- | ------------------------------------------------------------ |
+| `stake_id`         | UUID       | Stake primary key                                            |
+| `created_at`       | string     | Stake creation timestamp (`YYYY-MM-DD HH:MM:SS`)            |
+| `game`             | object     | Game type `{id, name, code}`                                 |
+| `event_id`         | UUID       | Draw event ID                                                |
+| `event`            | string     | Event display name                                           |
+| `play_group`       | string     | Play group ("Direct", "Perm", "Banker to All", "Banker Against") |
+| `play`             | string     | Play type name (e.g. "Direct 2 (2 Sure)")                    |
+| `numbers`          | string     | Staked numbers as comma-separated string                     |
+| `stake_amount`     | string     | Stake amount as decimal string                               |
+| `original_numbers` | string     | Original numbers (for BA: pipe-separated sets)               |
+| `player_phone`     | string     | Player phone number                                          |
+| `stake_status`     | string     | Ticket status in uppercase (e.g. "ACTIVE", "LOST", "WON")   |
+| `writer`           | object     | Writer info `{id, name, phone}` or `null`                    |
+
+### Notes
+- Cancelled tickets are excluded.
+- The `search` parameter matches against ticket number, writer first/last name, and player phone.
+- Stakes are nested directly in each ticket row — no separate endpoint needed.
+- Stakes are ordered by `sequence_no` (ascending).
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/games/events/<event-uuid>/tickets/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+---
+
 ## Last Updated
-April 3, 2026
+April 5, 2026
 
 ## API Version
 v1
