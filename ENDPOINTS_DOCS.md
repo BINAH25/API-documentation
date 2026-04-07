@@ -28,6 +28,20 @@
 18. [Draws & Winnings Table Endpoint](#draws--winnings-table-endpoint)
 19. [Draw Event Tickets Endpoint](#draw-event-tickets-endpoint)
 
+### Admin Users
+20. [List Admin Users Endpoint](#list-admin-users-endpoint)
+21. [Create Admin User Endpoint](#create-admin-user-endpoint)
+22. [Edit Admin User Endpoint](#edit-admin-user-endpoint)
+23. [Activity Logs Endpoint](#activity-logs-endpoint)
+
+### Writer Dashboard (Admin)
+24. [All Writers List Endpoint](#all-writers-list-endpoint)
+25. [Writer Profile Endpoint](#writer-profile-endpoint)
+26. [Writer Sales Endpoint](#writer-sales-endpoint)
+27. [Writer Winnings Endpoint](#writer-winnings-endpoint)
+28. [Writer Top-Ups Endpoint](#writer-top-ups-endpoint)
+29. [Writer Cashouts Endpoint](#writer-cashouts-endpoint)
+
 ---
 
 ## Writer Statistics Endpoint
@@ -2235,8 +2249,750 @@ curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/games/ev
 
 ---
 
+## List Admin Users Endpoint
+
+Returns a paginated list of all admin users. Supports search by name or phone number.
+
+### URL
+`GET /api/v1/auth/users/admins/`
+
+### Authentication
+JWT Bearer token required.
+
+### Permissions
+- **Admin only** (`IsAdmin`)
+
+### Query Parameters
+
+| Parameter   | Type   | Required | Description                              |
+| ----------- | ------ | -------- | ---------------------------------------- |
+| `search`    | string | No       | Search by first name, last name, or phone number |
+| `page`      | int    | No       | Page number (default: 1)                 |
+| `page_size` | int    | No       | Results per page (default: 30)           |
+
+### Response — `200 OK`
+
+```json
+{
+  "count": 4,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "email": "testuser@example.com",
+      "first_name": "Test",
+      "last_name": "User",
+      "full_name": "Test User",
+      "phone": "+233593814832",
+      "role": "admin",
+      "is_active": true,
+      "photo": null,
+      "date_joined": "2025-09-06T10:00:00Z"
+    }
+  ]
+}
+```
+
+### Row Fields
+
+| Field         | Type     | Description                        |
+| ------------- | -------- | ---------------------------------- |
+| `id`          | UUID     | User primary key                   |
+| `email`       | string   | User's email address               |
+| `first_name`  | string   | First name                         |
+| `last_name`   | string   | Last name                          |
+| `full_name`   | string   | Computed full name                 |
+| `phone`       | string   | Phone number                       |
+| `role`        | string   | Always `admin`                     |
+| `is_active`   | boolean  | Account active status              |
+| `photo`       | string/null | Profile photo URL or null       |
+| `date_joined` | datetime | Account creation timestamp         |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/auth/users/admins/?search=Benjamin" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+---
+
+## Create Admin User Endpoint
+
+Creates a new user with the `admin` role.
+
+### URL
+`POST /api/v1/auth/users/admins/`
+
+### Authentication
+JWT Bearer token required.
+
+### Permissions
+- **Admin only** (`IsAdmin`)
+
+### Request Body
+
+```json
+{
+  "email": "newadmin@example.com",
+  "first_name": "New",
+  "last_name": "Admin",
+  "phone": "+233551112222",
+  "password": "securepass123"
+}
+```
+
+### Request Fields
+
+| Field        | Type   | Required | Description              |
+| ------------ | ------ | -------- | ------------------------ |
+| `email`      | string | Yes      | Unique email address     |
+| `first_name` | string | Yes      | First name               |
+| `last_name`  | string | Yes      | Last name                |
+| `phone`      | string | Yes      | Unique phone number      |
+| `password`   | string | Yes      | Password (min 8 chars)   |
+| `photo`      | file   | No       | Profile photo            |
+
+### Response — `201 Created`
+
+```json
+{
+  "id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+  "email": "newadmin@example.com",
+  "first_name": "New",
+  "last_name": "Admin",
+  "full_name": "New Admin",
+  "phone": "+233551112222",
+  "role": "admin",
+  "is_active": true,
+  "photo": null,
+  "date_joined": "2026-04-06T12:00:00Z"
+}
+```
+
+### Notes
+- The `role` is automatically set to `admin` — it cannot be overridden via the request body.
+- The user is created with `is_active=true` by default.
+
+### Example Request
+
+```bash
+curl -X POST https://onassismystrocore-production.up.railway.app/api/v1/auth/users/admins/ \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"newadmin@example.com","first_name":"New","last_name":"Admin","phone":"+233551112222","password":"securepass123"}'
+```
+
+---
+
+## Edit Admin User Endpoint
+
+Updates an existing admin user. Only admin-role users can be edited via this endpoint.
+
+### URL
+`PATCH /api/v1/auth/users/{id}/admin-edit/`
+
+### Authentication
+JWT Bearer token required.
+
+### Permissions
+- **Admin only** (`IsAdmin`)
+
+### Path Parameters
+
+| Parameter | Type | Required | Description       |
+| --------- | ---- | -------- | ----------------- |
+| `id`      | UUID | Yes      | User UUID         |
+
+### Request Body (partial update)
+
+```json
+{
+  "first_name": "Updated",
+  "phone": "+233559998888"
+}
+```
+
+### Editable Fields
+
+| Field        | Type    | Description              |
+| ------------ | ------- | ------------------------ |
+| `email`      | string  | Email address            |
+| `first_name` | string  | First name               |
+| `last_name`  | string  | Last name                |
+| `phone`      | string  | Phone number             |
+| `is_active`  | boolean | Activate/deactivate user |
+| `photo`      | file    | Profile photo            |
+
+### Response — `200 OK`
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "email": "admin@example.com",
+  "first_name": "Updated",
+  "last_name": "Admin",
+  "full_name": "Updated Admin",
+  "phone": "+233559998888",
+  "role": "admin",
+  "is_active": true,
+  "photo": null,
+  "date_joined": "2025-09-06T10:00:00Z"
+}
+```
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Target user is not an admin |
+| `401 Unauthorized` | Missing or invalid token |
+| `403 Forbidden` | Requesting user is not an admin |
+| `404 Not Found` | User UUID does not exist |
+
+### Example Request
+
+```bash
+curl -X PATCH "https://onassismystrocore-production.up.railway.app/api/v1/auth/users/<user-uuid>/admin-edit/" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"first_name":"Updated","is_active":false}'
+```
+
+---
+
+## Activity Logs Endpoint
+
+Returns a paginated list of recent admin dashboard activity (logins, admin user creation, admin user edits).
+
+### URL
+`GET /api/v1/auth/users/activity-logs/`
+
+### Authentication
+JWT Bearer token required.
+
+### Permissions
+- **Admin only** (`IsAdmin`)
+
+### Query Parameters
+
+| Parameter   | Type | Required | Description                    |
+| ----------- | ---- | -------- | ------------------------------ |
+| `page`      | int  | No       | Page number (default: 1)       |
+| `page_size` | int  | No       | Results per page (default: 30) |
+
+### Response — `200 OK`
+
+```json
+{
+  "count": 12,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "actor_name": "Kwabena Mensah",
+      "action": "login",
+      "description": "Login (by Kwabena Mensah)",
+      "created_at": "2026-04-06T16:00:00Z"
+    },
+    {
+      "id": 2,
+      "actor_name": "Kwabena Mensah",
+      "action": "create_admin",
+      "description": "Created admin user John Doe",
+      "created_at": "2026-04-06T15:30:00Z"
+    }
+  ]
+}
+```
+
+### Row Fields
+
+| Field        | Type     | Description                                             |
+| ------------ | -------- | ------------------------------------------------------- |
+| `id`         | int      | Auto-incremented primary key                            |
+| `actor_name` | string   | Full name of the user who performed the action          |
+| `action`     | string   | Action type: `login`, `create_admin`, or `edit_admin`   |
+| `description`| string   | Human-readable description of the action                |
+| `created_at` | datetime | When the action occurred                                |
+
+### Actions Logged
+
+| Action          | Trigger                                          |
+| --------------- | ------------------------------------------------ |
+| `login`         | Successful login by an admin or operator user    |
+| `create_admin`  | New admin user created via POST /admins/          |
+| `edit_admin`    | Admin user edited via PATCH /admin-edit/          |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/auth/users/activity-logs/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+---
+
+## 24. All Writers List Endpoint
+
+### Purpose
+Returns a paginated list of all writers for the admin dashboard. Each row includes
+YTD sales, YTD top-ups, days on platform, days of ticket activity, last transaction
+date, and writer status.
+
+### URL
+`GET /api/v1/writers/all/`
+
+### Authentication
+Requires JWT. Minimum role: **LMC Owner** (lmc_owner, operator, admin).
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                                      |
+| --------- | ------ | -------- | ------------------------------------------------ |
+| `search`  | string | No       | Filter by first name, last name, or phone number |
+| `status`  | string | No       | Filter by writer status (active, passive, etc.)  |
+| `page`    | int    | No       | Page number (default 1)                          |
+
+### Response Fields (each row)
+
+| Field                  | Type     | Description                              |
+| ---------------------- | -------- | ---------------------------------------- |
+| `id`                   | UUID     | Writer primary key                       |
+| `writer_id_display`    | string   | Zero-padded writer ID (e.g. "000042")    |
+| `name`                 | string   | Writer full name                         |
+| `contact`              | string   | Writer phone number                      |
+| `sign_up_date`         | datetime | Writer creation date                     |
+| `days_on_platform`     | int      | Days since sign-up                       |
+| `days_of_tickets`      | int      | Distinct days with ticket sales          |
+| `ytd_sales`            | decimal  | Year-to-date ticket sales total          |
+| `ytd_topups`           | decimal  | Year-to-date top-up total                |
+| `last_transaction_date`| datetime | Date of most recent ticket sale          |
+| `status`               | string   | Writer status                            |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/all/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+---
+
+```json
+{
+    "count": 35,
+    "next": "http://localhost:8000/api/v1/writers/all/?page=2",
+    "previous": null,
+    "results": [
+        {
+            "id": "980d76e2-5c65-4760-aaea-c943272eef3c",
+            "writer_id_display": "000001",
+            "name": "Test Writer",
+            "contact": "+233241110001",
+            "sign_up_date": "2026-03-01T17:57:18.714000Z",
+            "days_on_platform": 37,
+            "days_of_tickets": 6,
+            "ytd_sales": "1809.70",
+            "ytd_topups": "0.00",
+            "last_transaction_date": "2026-04-01T08:52:17.189024Z",
+            "status": "active"
+        },
+        {
+            "id": "c9c0d0b8-cae2-4517-89f7-67357e5a1ae0",
+            "writer_id_display": "000002",
+            "name": "Name",
+            "contact": "+233202225630",
+            "sign_up_date": "2026-03-01T17:57:18.717000Z",
+            "days_on_platform": 37,
+            "days_of_tickets": 16,
+            "ytd_sales": "4736.70",
+            "ytd_topups": "13839.00",
+            "last_transaction_date": "2026-04-04T12:10:43.333984Z",
+            "status": "active"
+        },
+    ]
+}
+```
+
+## 25. Writer Profile Endpoint
+
+### Purpose
+Returns the full profile for a single writer, including summary cards (YTD sales,
+top-ups, winnings), wallet balances, device info, tier ranking, and personal details.
+
+### URL
+`GET /api/v1/writers/{id}/profile/`
+
+### Authentication
+Requires JWT. Minimum role: **LMC Owner** (lmc_owner, operator, admin).
+
+### Response Fields
+
+| Field                 | Type     | Description                                  |
+| --------------------- | -------- | -------------------------------------------- |
+| `id`                  | UUID     | Writer primary key                           |
+| `writer_id_display`   | string   | Zero-padded writer ID                        |
+| `name`                | string   | Writer full name                             |
+| `gender`              | string   | Gender (N/A if not set)                      |
+| `date_of_birth`       | date     | Date of birth                                |
+| `mobile`              | string   | Phone number                                 |
+| `email`               | string   | Email address                                |
+| `status`              | string   | Writer status                                |
+| `serial_number`       | string   | Bound POS device serial number               |
+| `terminal_number`     | string   | Terminal ID (truncated device UUID)           |
+| `device_state`        | string   | Bound device status (trading/issued/recovery) |
+| `days_on_platform`    | int      | Days since sign-up                           |
+| `days_of_tickets`     | int      | Distinct days with ticket sales              |
+| `lt_avg_sale`         | decimal  | Lifetime average ticket sale amount          |
+| `sign_up_date`        | datetime | Writer creation date                         |
+| `sales_wallet_balance`| string   | Airtime wallet balance                       |
+| `sales_wallet_id`     | string   | Airtime wallet ID (truncated)                |
+| `claims_wallet_balance`| string  | Claims wallet balance                        |
+| `claims_wallet_id`    | string   | Claims wallet ID (truncated)                 |
+| `ytd_sales`           | decimal  | Year-to-date ticket sales                    |
+| `this_month_sales`    | decimal  | Current month ticket sales                   |
+| `ytd_topups`          | decimal  | Year-to-date top-ups                         |
+| `this_month_topups`   | decimal  | Current month top-ups                        |
+| `ytd_winnings`        | decimal  | Year-to-date winnings                        |
+| `this_month_winnings` | decimal  | Current month winnings                       |
+| `ranking_tier`        | string   | Tier based on YTD top-ups (Tier I–IV)        |
+| `avg_topup`           | decimal  | Average top-up amount                        |
+
+### Tier Thresholds
+
+| Tier     | YTD Top-Ups Threshold |
+| -------- | --------------------- |
+| Tier I   | ≥ GHS 50,000          |
+| Tier II  | ≥ GHS 20,000          |
+| Tier III | ≥ GHS 5,000           |
+| Tier IV  | < GHS 5,000           |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/{id}/profile/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+```json
+{
+    "id": "d30a931e-2af3-4e6e-b72b-a1b7b0a31d7c",
+    "writer_id_display": "000004",
+    "name": "Kwame First",
+    "gender": "N/A",
+    "date_of_birth": "1990-01-01",
+    "mobile": "+233204449258",
+    "email": "+233204449258@writer.onassislotto.com",
+    "status": "active",
+    "serial_number": "POS-0004-4844",
+    "terminal_number": "1c887e",
+    "device_state": "trading",
+    "days_on_platform": 37,
+    "days_of_tickets": 26,
+    "lt_avg_sale": "30.49",
+    "sign_up_date": "2026-03-01T17:57:18.720000Z",
+    "sales_wallet_balance": "0.00",
+    "sales_wallet_id": "64826167-f12",
+    "claims_wallet_balance": "0.00",
+    "claims_wallet_id": "948c423d-91d",
+    "ytd_sales": "19389.60",
+    "this_month_sales": "2052.00",
+    "ytd_topups": "671828.00",
+    "this_month_topups": "671828.00",
+    "ytd_winnings": "73320.00",
+    "this_month_winnings": "73320.00",
+    "ranking_tier": "Tier I",
+    "avg_topup": "1056.33"
+}
+   ```
+
+---
+
+## 26. Writer Sales Endpoint
+
+### Purpose
+Returns a paginated list of ticket sales for a specific writer. This powers the
+"Sales" tab on the writer detail page.
+
+### URL
+`GET /api/v1/writers/{id}/writer-sales/`
+
+### Authentication
+Requires JWT. Minimum role: **LMC Owner** (lmc_owner, operator, admin).
+
+### Response Fields (each row)
+
+| Field          | Type    | Description                            |
+| -------------- | ------- | -------------------------------------- |
+| `ticket_no`    | string  | Ticket number                          |
+| `date`         | string  | Sale date (e.g. "Mon, 06 April 2026") |
+| `time`         | string  | Sale time (e.g. "02:31:52 PM")        |
+| `event_number` | int     | Draw event number                      |
+| `game`         | string  | Game type name                         |
+| `play`         | string  | Primary play type name (first stake)   |
+| `amount_paid`  | decimal | Total ticket amount                    |
+| `stakes`       | int     | Number of stakes on the ticket         |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/{id}/writer-sales/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+```json
+{
+    "id": "d30a931e-2af3-4e6e-b72b-a1b7b0a31d7c",
+    "writer_id_display": "000004",
+    "name": "Kwame First",
+    "gender": "N/A",
+    "date_of_birth": "1990-01-01",
+    "mobile": "+233204449258",
+    "email": "+233204449258@writer.onassislotto.com",
+    "status": "active",
+    "serial_number": "POS-0004-4844",
+    "terminal_number": "1c887e",
+    "device_state": "trading",
+    "days_on_platform": 37,
+    "days_of_tickets": 26,
+    "lt_avg_sale": "30.49",
+    "sign_up_date": "2026-03-01T17:57:18.720000Z",
+    "sales_wallet_balance": "0.00",
+    "sales_wallet_id": "64826167-f12",
+    "claims_wallet_balance": "0.00",
+    "claims_wallet_id": "948c423d-91d",
+    "ytd_sales": "19389.60",
+    "this_month_sales": "2052.00",
+    "ytd_topups": "671828.00",
+    "this_month_topups": "671828.00",
+    "ytd_winnings": "73320.00",
+    "this_month_winnings": "73320.00",
+    "ranking_tier": "Tier I",
+    "avg_topup": "1056.33"
+}
+   ```
+
+---
+
+## 27. Writer Winnings Endpoint
+
+### Purpose
+Returns a paginated list of winnings for a specific writer. This powers the
+"Winnings" tab on the writer detail page.
+
+### URL
+`GET /api/v1/writers/{id}/writer-winnings/`
+
+### Authentication
+Requires JWT. Minimum role: **LMC Owner** (lmc_owner, operator, admin).
+
+### Response Fields (each row)
+
+| Field           | Type    | Description                              |
+| --------------- | ------- | ---------------------------------------- |
+| `ticket_id` | string  | Truncated ticket UUID                    |
+| `ticket_number` | string  | Ticket number                            |
+| `event_number`  | int     | Draw event number                        |
+| `game`          | string  | Game type name                           |
+| `play`          | string  | Primary play type name (first stake)     |
+| `datetime`      | string  | Win computed datetime (dd/mm/yyyy HH:MM) |
+| `stake_amount`  | decimal | Total ticket amount (stake)              |
+| `amount_won`    | decimal | Win amount                               |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/{id}/writer-winnings/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+```json
+{
+    "count": 6,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "ticket_id": "c3cfe3bc-d6cc-4f",
+            "ticket_number": "204562360309503498718027017",
+            "event_number": 86,
+            "game": "5/90 Noonrush",
+            "play": "Direct 5",
+            "datetime": "06/04/2026 18:43:53",
+            "stake_amount": "15.00",
+            "amount_won": "250.00"
+        },
+        {
+            "ticket_id": "9da97824-acc7-40",
+            "ticket_number": "295943210730285437897410591",
+            "event_number": 39,
+            "game": "5/90 Original",
+            "play": "Direct 1",
+            "datetime": "06/04/2026 18:43:53",
+            "stake_amount": "20.00",
+            "amount_won": "1000.00"
+        },
+        {
+            "ticket_id": "6b93ca85-5b92-4e",
+            "ticket_number": "997655458880124027097593535",
+            "event_number": 48,
+            "game": "5/90 Original",
+            "play": "Perm 2",
+            "datetime": "06/04/2026 18:43:53",
+            "stake_amount": "5.00",
+            "amount_won": "2500.00"
+        },
+        {
+            "ticket_id": "01d7f37b-f5cf-41",
+            "ticket_number": "202603302352170004067108",
+            "event_number": 2,
+            "game": "5/90 Noonrush",
+            "play": "Perm 2",
+            "datetime": "05/04/2026 22:26:18",
+            "stake_amount": "206.00",
+            "amount_won": "1200.00"
+        },
+        {
+            "ticket_id": "35574f13-3312-42",
+            "ticket_number": "202603262252170004718559",
+            "event_number": 1,
+            "game": "Morning VAG",
+            "play": "Direct 3",
+            "datetime": "05/04/2026 22:26:18",
+            "stake_amount": "0.40",
+            "amount_won": "200.00"
+        },
+        {
+            "ticket_id": "8d629032-edc8-43",
+            "ticket_number": "202603300552170004529643",
+            "event_number": 1,
+            "game": "Morning VAG",
+            "play": "Perm 2",
+            "datetime": "05/04/2026 22:26:18",
+            "stake_amount": "101.00",
+            "amount_won": "960.00"
+        }
+    ]
+}
+```
+
+
+
+---
+
+## 28. Writer Top-Ups Endpoint
+
+### Purpose
+Returns a paginated list of top-up transactions for a specific writer. This powers
+the "Top-Ups" tab on the writer detail page.
+
+### URL
+`GET /api/v1/writers/{id}/writer-topups/`
+
+### Authentication
+Requires JWT. Minimum role: **LMC Owner** (lmc_owner, operator, admin).
+
+### Response Fields (each row)
+
+| Field            | Type    | Description                                |
+| ---------------- | ------- | ------------------------------------------ |
+| `date`           | string  | Top-up date (e.g. "Mon, 06 Apr 2026")     |
+| `time`           | string  | Top-up time (e.g. "02:31:52 PM")          |
+| `source`         | string  | Source phone/identifier from payment data  |
+| `network`        | string  | Payment channel/network or top-up method   |
+| `bank_batch_ref` | string  | Payment reference                          |
+| `transaction_ref`      | string  | Provider transaction ID                    |
+| `amount`         | decimal | Top-up amount (GHS)                        |
+| `balance`        | string  | Balance after top-up (N/A if unavailable)  |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/{id}/writer-topups/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+```json
+{
+    "count": 12,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "date": "Mon, 06 Apr 2026",
+            "time": "06:43:53 PM",
+            "source": null,
+            "network": "mobile_money",
+            "bank_batch_ref": null,
+            "transaction_ref": null,
+            "amount": "1264.00",
+            "balance": "N/A"
+        },
+        {
+            "date": "Mon, 06 Apr 2026",
+            "time": "06:43:53 PM",
+            "source": null,
+            "network": "mobile_money",
+            "bank_batch_ref": null,
+            "transaction_ref": null,
+            "amount": "1712.00",
+            "balance": "N/A"
+        },
+        {
+            "date": "Mon, 06 Apr 2026",
+            "time": "06:43:53 PM",
+            "source": null,
+            "network": "mobile_money",
+            "bank_batch_ref": null,
+            "transaction_ref": null,
+            "amount": "1478.00",
+            "balance": "N/A"
+        },
+{    [
+```
+
+
+---
+
+## 29. Writer Cashouts Endpoint
+
+### Purpose
+Returns a paginated list of successful withdrawal (cashout) transactions for a
+specific writer. Only withdrawals with status "success" are included. This powers
+the "Cashout" tab on the writer detail page.
+
+### URL
+`GET /api/v1/writers/{id}/writer-cashouts/`
+
+### Authentication
+Requires JWT. Minimum role: **LMC Owner** (lmc_owner, operator, admin).
+
+### Response Fields (each row)
+
+| Field            | Type    | Description                                |
+| ---------------- | ------- | ------------------------------------------ |
+| `date`           | string  | Cashout date (e.g. "Mon, 06 Apr 2026")    |
+| `time`           | string  | Cashout time (e.g. "02:31:52 PM")         |
+| `source`         | string  | Recipient mobile number                    |
+| `network`        | string  | Mobile money provider (MTN, VOD, ATL)      |
+| `bank_batch_ref` | string  | Withdrawal reference                       |
+| `transaction_ref`      | string  | Provider transaction ID                    |
+| `amount`         | decimal | Withdrawal amount (GHS)                    |
+| `balance`        | string  | Balance after cashout (N/A if unavailable) |
+
+### Example Request
+
+```bash
+curl -X GET "https://onassismystrocore-production.up.railway.app/api/v1/writers/{id}/writer-cashouts/" \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+---
+
 ## Last Updated
-April 5, 2026
+April 6, 2026
 
 ## API Version
 v1
