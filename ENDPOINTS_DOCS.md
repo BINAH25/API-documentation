@@ -17,7 +17,6 @@
 11. [Top 10 Writers Endpoint](#top-10-writers-endpoint)
 
 ### LMCs
-12. [Available LMC Owners Endpoint](#available-lmc-owners-endpoint)
 13. [Register LMC Endpoint](#register-lmc-endpoint)
 14. [Get All LMC Owners Endpoint](#get-all-lmc-owners-endpoint)
 15. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
