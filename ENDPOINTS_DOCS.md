@@ -19,42 +19,46 @@
 ### LMCs
 12. [Available LMC Owners Endpoint](#available-lmc-owners-endpoint)
 13. [Register LMC Endpoint](#register-lmc-endpoint)
-14. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
-15. [LMC Writers Overview Endpoint](#lmc-writers-overview-endpoint)
-16. [LMC Transactions Endpoint](#lmc-transactions-endpoint)
+14. [Get All LMC Owners Endpoint](#get-all-lmc-owners-endpoint)
+15. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
+16. [LMC Writers Overview Endpoint](#lmc-writers-overview-endpoint)
+17. [LMC Transactions Endpoint](#lmc-transactions-endpoint)
+
+### Writers Registration
+18. [Register Writer Endpoint](#register-writer-endpoint)
 
 ### Draws & Winnings
-17. [Draws & Winnings Endpoint](#draws--winnings-endpoint)
-18. [Draws & Winnings Table Endpoint](#draws--winnings-table-endpoint)
-19. [Draw Event Tickets Endpoint](#draw-event-tickets-endpoint)
+19. [Draws & Winnings Endpoint](#draws--winnings-endpoint)
+20. [Draws & Winnings Table Endpoint](#draws--winnings-table-endpoint)
+21. [Draw Event Tickets Endpoint](#draw-event-tickets-endpoint)
 
 ### Admin Users
-20. [List Admin Users Endpoint](#list-admin-users-endpoint)
-21. [Create Admin User Endpoint](#create-admin-user-endpoint)
-22. [Edit Admin User Endpoint](#edit-admin-user-endpoint)
-23. [Activity Logs Endpoint](#activity-logs-endpoint)
+22. [List Admin Users Endpoint](#list-admin-users-endpoint)
+23. [Create Admin User Endpoint](#create-admin-user-endpoint)
+24. [Edit Admin User Endpoint](#edit-admin-user-endpoint)
+25. [Activity Logs Endpoint](#activity-logs-endpoint)
 
 ### Writer Dashboard 
-24. [All Writers List Endpoint](#all-writers-list-endpoint)
-25. [Writer Profile Endpoint](#writer-profile-endpoint)
-26. [Writer Sales Endpoint](#writer-sales-endpoint)
-27. [Writer Winnings Endpoint](#writer-winnings-endpoint)
-28. [Writer Top-Ups Endpoint](#writer-top-ups-endpoint)
-29. [Writer Cashouts Endpoint](#writer-cashouts-endpoint)
+26. [All Writers List Endpoint](#all-writers-list-endpoint)
+27. [Writer Profile Endpoint](#writer-profile-endpoint)
+28. [Writer Sales Endpoint](#writer-sales-endpoint)
+29. [Writer Winnings Endpoint](#writer-winnings-endpoint)
+30. [Writer Top-Ups Endpoint](#writer-top-ups-endpoint)
+31. [Writer Cashouts Endpoint](#writer-cashouts-endpoint)
 
 ### Analytics continuation
-30. [Sales Card Endpoint](#sales-card-endpoint)
-31. [Net Top-Ups Card Endpoint](#net-top-ups-card-endpoint)
-32. [Writers@Work Card Endpoint](#writerswork-card-endpoint)
-33. [Wins Card Endpoint](#wins-card-endpoint)
-34. [Liquidation Card Endpoint](#liquidation-card-endpoint)
-35. [Settlements Card Endpoint](#settlements-card-endpoint)
+32. [Sales Card Endpoint](#sales-card-endpoint)
+33. [Net Top-Ups Card Endpoint](#net-top-ups-card-endpoint)
+34. [Writers@Work Card Endpoint](#writerswork-card-endpoint)
+35. [Wins Card Endpoint](#wins-card-endpoint)
+36. [Liquidation Card Endpoint](#liquidation-card-endpoint)
+37. [Settlements Card Endpoint](#settlements-card-endpoint)
 
 ### Sales Continuation
-36. [Today's Claims Endpoint](#todays-claims-endpoint)
-37. [Today's Wins Endpoint](#todays-wins-endpoint)
-38. [Winning Events Endpoint](#winning-events-endpoint)
-39. [Winners List Endpoint](#winners-list-endpoint)
+38. [Today's Claims Endpoint](#todays-claims-endpoint)
+39. [Today's Wins Endpoint](#todays-wins-endpoint)
+40. [Winning Events Endpoint](#winning-events-endpoint)
+41. [Winners List Endpoint](#winners-list-endpoint)
 
 ---
 
@@ -721,35 +725,65 @@ Returns a list of users with the `lmc_owner` role who are not yet assigned to an
 ## Register LMC Endpoint
 
 ### Overview
-Creates a new LMC (Lotto Marketing Company) assigned to an existing `lmc_owner` user. Automatically generates a sequential LMC code (e.g. `LMC-0001`) and creates an airtime wallet for the new LMC.
+Registers a new LMC with its owner in a single operation. Creates both:
+- A new User with role `lmc_owner`
+- A new LMC linked to that user
+- An LMC airtime wallet (automatic)
+
+This endpoint allows onboarding new LMC companies without pre-creating the owner user separately.
 
 ### Request
 
 **Method:** `POST`
 
-**Route:** `/api/v1/lmc/`
+**Route:** `/api/v1/lmc/register/`
 
-**Authentication:** Required (Bearer Token)
+**Authentication:** Not required (public endpoint)
 
-**Permissions:** Operator or above
+**Permissions:** None (AllowAny)
 
 ### Request Body
 
 ```json
 {
-  "owner": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "email": "owner@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "phone": "+233501234567",
+  "password": "securepassword123",
   "address": "123 Main Street, Accra",
-  "is_active": true
+  "photo": null
 }
 ```
+
+**Note:** For photo uploads, use `multipart/form-data` instead of JSON. See [Photo Upload Example](#photo-upload-example) below.
 
 ### Request Field Descriptions
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `owner` | UUID | Yes | UUID of an `lmc_owner` user |
-| `address` | string | No | Physical address of the LMC |
-| `is_active` | boolean | No | Whether the LMC is active (defaults to `true`) |
+| `email` | string | Yes | Unique email address for the LMC owner account |
+| `first_name` | string | Yes | Owner's first name (max 150 chars) |
+| `last_name` | string | Yes | Owner's last name (max 150 chars) |
+| `phone` | string | Yes | Unique phone number in E.164 format (e.g. +233501234567) |
+| `password` | string | Yes | Password for the owner account (minimum 8 characters) |
+| `address` | string | No | Physical address of the LMC (max 500 chars) |
+| `photo` | file | No | Profile photo (image file, optional) |
+
+### Photo Upload Example
+
+When uploading a photo, use `multipart/form-data` instead of JSON:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/lmc/register/ \
+  -F "email=owner@example.com" \
+  -F "first_name=John" \
+  -F "last_name=Doe" \
+  -F "phone=+233501234567" \
+  -F "password=securepassword123" \
+  -F "address=123 Main Street, Accra" \
+  -F "photo=@/path/to/photo.jpg"
+```
 
 ### Response Format
 
@@ -757,21 +791,113 @@ Creates a new LMC (Lotto Marketing Company) assigned to an existing `lmc_owner` 
 
 ```json
 {
-  "id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
-  "code": "LMC-0025",
-  "name": "Kwame Mensah",
-  "phone": "+233501234567",
-  "address": "123 Main Street, Accra",
-  "owner": {
+  "user": {
     "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "full_name": "Kwame Mensah",
-    "phone": "+233501234567",
-    "photo": null
+    "email": "owner@example.com",
+    "full_name": "John Doe",
+    "role": "lmc_owner",
+    "phone": "+233501234567"
   },
-  "is_active": true,
-  "created_at": "2026-04-05T12:00:00Z",
-  "updated_at": "2026-04-05T12:00:00Z"
+  "lmc": {
+    "id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+    "code": "LMC-0025",
+    "name": "John Doe",
+    "phone": "+233501234567",
+    "address": "123 Main Street, Accra",
+    "owner": {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "email": "owner@example.com",
+      "full_name": "John Doe",
+      "role": "lmc_owner",
+      "phone": "+233501234567"
+    },
+    "is_active": true,
+    "created_at": "2026-04-10T12:00:00Z",
+    "updated_at": "2026-04-10T12:00:00Z"
+  },
+  "message": "LMC registration successful"
 }
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | object | Created LMC owner user summary |
+| `user.id` | UUID | User's unique identifier |
+| `user.email` | string | Owner's email address |
+| `user.full_name` | string | Owner's full name |
+| `user.role` | string | Always `"lmc_owner"` |
+| `user.phone` | string | Owner's phone number |
+| `lmc` | object | Created LMC details |
+| `lmc.id` | UUID | LMC's unique identifier |
+| `lmc.code` | string | Auto-generated sequential code (e.g. `LMC-0025`) |
+| `lmc.name` | string | Owner's full name |
+| `lmc.phone` | string | Owner's phone number |
+| `lmc.address` | string | LMC physical address |
+| `lmc.owner` | object | Owner user summary |
+| `lmc.is_active` | boolean | Always `true` for newly created LMCs |
+| `lmc.created_at` | datetime | LMC creation timestamp |
+| `lmc.updated_at` | datetime | LMC last update timestamp |
+| `message` | string | Success confirmation message |
+
+### Error Responses
+
+**Status Code:** `400 Bad Request`
+
+```json
+{
+  "email": ["A user with this email address already exists."],
+  "phone": ["A user with this phone number already exists."]
+}
+```
+
+---
+
+
+
+## Get All LMC Owners Endpoint
+
+### Overview
+Returns a list of all LMC owners with their associated LMC information. Useful for displaying all LMC companies, creating dropdowns, or managing LMC data.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/lmc/owners/`
+
+**Authentication:** Not required (public endpoint)
+
+**Permissions:** None (AllowAny)
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+[
+  {
+    "id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+    "code": "LMC-0025",
+    "address": "123 Main Street, Accra",
+    "is_active": true,
+    "owner_email": "owner@example.com",
+    "owner_phone": "+233501234567",
+    "owner_full_name": "John Doe",
+    "created_at": "2026-04-10T12:00:00Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "code": "LMC-0026",
+    "address": "456 Oak Avenue, Kumasi",
+    "is_active": true,
+    "owner_email": "owner2@example.com",
+    "owner_phone": "+233509876543",
+    "owner_full_name": "Jane Smith",
+    "created_at": "2026-04-09T10:30:00Z"
+  }
+]
 ```
 
 ### Response Field Descriptions
@@ -780,13 +906,154 @@ Creates a new LMC (Lotto Marketing Company) assigned to an existing `lmc_owner` 
 |-------|------|-------------|
 | `id` | UUID | LMC's unique identifier |
 | `code` | string | Auto-generated sequential code (e.g. `LMC-0025`) |
-| `name` | string | Owner's full name |
-| `phone` | string | Owner's phone number |
 | `address` | string | LMC physical address |
-| `owner` | object | Owner user summary |
 | `is_active` | boolean | Whether the LMC is active |
-| `created_at` | datetime | Creation timestamp |
-| `updated_at` | datetime | Last update timestamp |
+| `owner_email` | string | Owner's email address |
+| `owner_phone` | string | Owner's phone number |
+| `owner_full_name` | string | Owner's full name |
+| `created_at` | datetime | LMC creation timestamp |
+
+---
+
+## Register Writer Endpoint
+
+### Overview
+Registers a new writer with both user and writer information in a single operation. Creates:
+- A new User with role `writer`
+- A new Writer linked to the specified LMC
+- Writer wallets (airtime & claims) - automatic via service
+
+This endpoint allows complete writer onboarding without pre-creating the user separately.
+
+### Request
+
+**Method:** `POST`
+
+**Route:** `/api/v1/writers/register/`
+
+**Authentication:** Not required (public endpoint)
+
+**Permissions:** None (AllowAny)
+
+**Content-Type:** `multipart/form-data` (for photo upload) or `application/json`
+
+### Request Body
+
+**JSON (without photo):**
+```json
+{
+  "email": "writer@example.com",
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "phone": "+233501234567",
+  "password": "securepassword123",
+  "lmc_id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+  "date_of_birth": "1990-05-15",
+  "location_address": "Accra, Ghana",
+  "photo=@/path/to/photo.jpg"
+
+}
+```
+
+**Multipart/Form-Data (with photo):**
+- `email`: writer@example.com
+- `first_name`: Jane
+- `last_name`: Smith
+- `phone`: +233501234567
+- `password`: securepassword123
+- `lmc_id`: f9e8d7c6-b5a4-3210-fedc-ba9876543210
+- `date_of_birth`: 1990-05-15
+- `location_address`: Accra, Ghana
+- `photo`: <binary image file>
+
+### Request Field Descriptions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email` | string | Yes | Unique email address for the writer account |
+| `first_name` | string | Yes | Writer's first name (max 150 chars) |
+| `last_name` | string | Yes | Writer's last name (max 150 chars) |
+| `phone` | string | Yes | Unique phone number in E.164 format (e.g. +233501234567) |
+| `password` | string | Yes | Password for the writer account (minimum 8 characters) |
+| `lmc_id` | UUID | Yes | UUID of the LMC this writer belongs to |
+| `date_of_birth` | date | Yes | Writer's date of birth (YYYY-MM-DD, for KYC) |
+| `location_address` | string | No | Writer's operating location address (max 255 chars) |
+| `photo` | file | No | Profile photo (multipart/form-data only) |
+
+### Response Format
+
+**Status Code:** `201 Created`
+
+```json
+{
+  "user": {
+    "id": "b5c4d3e2-f1a0-0987-6543-21cba0987654",
+    "email": "writer@example.com",
+    "full_name": "Jane Smith",
+    "role": "writer",
+    "phone": "+233501234567"
+  },
+  "writer": {
+    "id": "c6d5e4f3-a0b1-1234-7890-32dcb1a98765",
+    "user": {
+      "id": "b5c4d3e2-f1a0-0987-6543-21cba0987654",
+      "email": "writer@example.com",
+      "full_name": "Jane Smith",
+      "role": "writer",
+      "phone": "+233501234567"
+    },
+    "lmc": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+    "photo": null,
+    "status": "active",
+    "writer_id": 42,
+    "date_of_birth": "1990-05-15",
+    "location_address": "Accra, Ghana",
+    "bound_device": null,
+    "has_bound_device": false,
+    "created_at": "2026-04-10T13:15:00Z",
+    "updated_at": "2026-04-10T13:15:00Z"
+  },
+  "message": "Writer registration successful"
+}
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | object | Created writer user summary |
+| `user.id` | UUID | User's unique identifier |
+| `user.email` | string | Writer's email address |
+| `user.full_name` | string | Writer's full name |
+| `user.role` | string | Always `"writer"` |
+| `user.phone` | string | Writer's phone number |
+| `writer` | object | Created writer details |
+| `writer.id` | UUID | Writer's unique identifier |
+| `writer.user` | object | User summary (full user object) |
+| `writer.lmc` | UUID | LMC UUID this writer belongs to |
+| `writer.photo` | string/null | URL to profile photo or null |
+| `writer.status` | string | Writer status (`active`, `passive`, `inactive`, `recover`, `no_use`) |
+| `writer.writer_id` | integer | Human-readable writer ID shown in UI |
+| `writer.date_of_birth` | date | Writer's date of birth |
+| `writer.location_address` | string | Writer's operating location |
+| `writer.bound_device` | UUID/null | Bound POS device or null |
+| `writer.has_bound_device` | boolean | Whether writer has a bound device |
+| `writer.created_at` | datetime | Writer creation timestamp |
+| `writer.updated_at` | datetime | Last update timestamp |
+| `message` | string | Success confirmation message |
+
+### Error Responses
+
+**Status Code:** `400 Bad Request`
+
+```json
+{
+  "email": ["A user with this email address already exists."],
+  "phone": ["A user with this phone number already exists."],
+  "lmc_id": ["LMC not found."],
+  "date_of_birth": ["Invalid date format or age validation failed."]
+}
+```
 
 ---
 
@@ -1117,7 +1384,7 @@ Returns a unified, paginated transaction ledger for a single LMC. Merges commiss
 
 **Route:** `GET /api/v1/games/events/{id}/tickets/`
 
-**Description:** Returns the paginated ticket list for a specific draw event (the "Pre Draw Tickets" modal). Each ticket includes its nested stakes with full detail.
+**Description:** Returns the paginated ticket list for a specific draw event (the "Pre Draw Tickets" modal). Each ticket includes its nested stakes with full detail, plus the event's draw date and time.
 
 **Authentication:** Required (Bearer Token)
 
@@ -1136,6 +1403,13 @@ Returns a unified, paginated transaction ledger for a single LMC. Merges commiss
 | `search` | string | No | Filter by ticket number, writer name, or player phone |
 | `page` | int | No | Page number (default: 1) |
 | `page_size` | int | No | Results per page (default: 20) |
+
+### Event Info Fields (top-level response)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event_date` | string | Event draw date (formatted, e.g. "Sat, 05 Apr 2026") |
+| `event_time` | string | Event draw time (HH:MM:SS format) |
 
 ### Ticket Row Fields
 
@@ -1317,6 +1591,16 @@ Returns a unified, paginated transaction ledger for a single LMC. Merges commiss
 | `search` | string | No | Filter by first name, last name, or phone number |
 | `status` | string | No | Filter by writer status |
 | `page` | int | No | Page number (default: 1) |
+
+### Query Examples
+
+```
+GET /api/v1/writers/all/?search=Kwesi
+GET /api/v1/writers/all/?search=Mensah
+GET /api/v1/writers/all/?search=0501234567
+GET /api/v1/writers/all/?search=Kwesi&status=active
+GET /api/v1/writers/all/?status=inactive&page=2
+```
 
 ### Response Fields
 
