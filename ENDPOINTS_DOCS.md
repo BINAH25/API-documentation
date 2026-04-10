@@ -669,58 +669,6 @@ Included   = Writers with at least one win OR one top-up in YTD
 
 ---
 
-## Available LMC Owners Endpoint
-
-### Overview
-Returns a list of users with the `lmc_owner` role who are not yet assigned to an LMC. Useful for populating the owner dropdown when registering a new LMC.
-
-### Request
-
-**Method:** `GET`
-
-**Route:** `/api/v1/auth/users/available-lmc-owners/`
-
-**Authentication:** Required (Bearer Token)
-
-**Permissions:** Operator or above
-
-### Response Format
-
-**Status Code:** `200 OK`
-
-```json
-[
-  {
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "email": "owner@example.com",
-    "first_name": "Kwame",
-    "last_name": "Mensah",
-    "full_name": "Kwame Mensah",
-    "phone": "+233501234567",
-    "role": "lmc_owner",
-    "is_active": true,
-    "photo": null
-  }
-]
-```
-
-### Response Field Descriptions
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | User's unique identifier |
-| `email` | string | User's email address |
-| `first_name` | string | User's first name |
-| `last_name` | string | User's last name |
-| `full_name` | string | Computed full name |
-| `phone` | string | User's phone number |
-| `role` | string | Always `lmc_owner` |
-| `is_active` | boolean | Account active status |
-| `photo` | string/null | URL to profile photo or null |
-
-> Only returns users with `role=lmc_owner` who do not already have an LMC assigned. Returns an empty list `[]` if all LMC owners are already assigned.
-
----
 
 ## Register LMC Endpoint
 
