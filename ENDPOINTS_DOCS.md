@@ -17,11 +17,14 @@
 11. [Top 10 Writers Endpoint](#top-10-writers-endpoint)
 
 ### LMCs
+12. [Available LMC Owners Endpoint](#available-lmc-owners-endpoint)
 13. [Register LMC Endpoint](#register-lmc-endpoint)
 14. [Get All LMC Owners Endpoint](#get-all-lmc-owners-endpoint)
-15. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
-16. [LMC Writers Overview Endpoint](#lmc-writers-overview-endpoint)
-17. [LMC Transactions Endpoint](#lmc-transactions-endpoint)
+15. [Edit LMC Endpoint](#edit-lmc-endpoint)
+16. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
+17. [LMC Summary Endpoint](#lmc-summary-endpoint)
+18. [LMC Writers Overview Endpoint](#lmc-writers-overview-endpoint)
+19. [LMC Transactions Endpoint](#lmc-transactions-endpoint)
 
 ### Writers Registration
 18. [Register Writer Endpoint](#register-writer-endpoint)
@@ -668,6 +671,58 @@ Included   = Writers with at least one win OR one top-up in YTD
 
 ---
 
+## Available LMC Owners Endpoint
+
+### Overview
+Returns a list of users with the `lmc_owner` role who are not yet assigned to an LMC. Useful for populating the owner dropdown when registering a new LMC.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/auth/users/available-lmc-owners/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "email": "owner@example.com",
+    "first_name": "Kwame",
+    "last_name": "Mensah",
+    "full_name": "Kwame Mensah",
+    "phone": "+233501234567",
+    "role": "lmc_owner",
+    "is_active": true,
+    "photo": null
+  }
+]
+```
+
+### Response Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | User's unique identifier |
+| `email` | string | User's email address |
+| `first_name` | string | User's first name |
+| `last_name` | string | User's last name |
+| `full_name` | string | Computed full name |
+| `phone` | string | User's phone number |
+| `role` | string | Always `lmc_owner` |
+| `is_active` | boolean | Account active status |
+| `photo` | string/null | URL to profile photo or null |
+
+> Only returns users with `role=lmc_owner` who do not already have an LMC assigned. Returns an empty list `[]` if all LMC owners are already assigned.
+
+---
 
 ## Register LMC Endpoint
 
@@ -1004,6 +1059,102 @@ This endpoint allows complete writer onboarding without pre-creating the user se
 
 ---
 
+## Edit LMC Endpoint
+
+### Overview
+Partially updates an existing LMC's editable fields. Use `PATCH` to update only the fields you want to change. Only `address`, `owner` (reassign to a different user), and `is_active` (enable/disable the LMC) can be updated. The `code` is auto-generated and cannot be changed.
+
+### Request
+
+**Method:** `PATCH`
+
+**Route:** `/api/v1/lmc/{id}/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above
+
+### Request Body
+
+All fields are optional for `PATCH` — send only the fields you want to change.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `address` | string | No | LMC physical address |
+| `owner` | UUID | No | UUID of the new owner user (must have role `lmc_owner`) |
+| `is_active` | boolean | No | Enable (`true`) or disable (`false`) the LMC |
+
+### Sample Requests
+
+**Update address only:**
+```bash
+PATCH /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "address": "45 Liberation Road, Accra"
+}
+```
+
+**Deactivate an LMC:**
+```bash
+PATCH /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "is_active": false
+}
+```
+
+**Update both address and reactivate:**
+```bash
+PATCH /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "address": "12 Ring Road Central, Accra",
+  "is_active": true
+}
+```
+
+### Response
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "id": "1a0dadec-9498-4a66-a51f-8345ae433c32",
+  "code": "LMC-0004",
+  "owner": "a3f12c90-1234-4abc-8def-000000000001",
+  "address": "45 Liberation Road, Accra",
+  "is_active": true,
+  "created_at": "2026-03-01T10:00:00Z"
+}
+```
+
+### Error Response
+
+**Status Code:** `400 Bad Request` — if `owner` UUID does not exist or does not have `lmc_owner` role:
+```json
+{
+  "owner": ["Invalid pk \"<uuid>\" - object does not exist."]
+}
+```
+
+**Status Code:** `403 Forbidden` — if caller is not Operator or above:
+```json
+{
+  "detail": "You do not have permission to perform this action."
+}
+```
+
+---
+
 ## LMC Detail Cards Endpoint
 
 ### Overview
@@ -1083,10 +1234,91 @@ Returns all LMCs with an operational snapshot (live writer counts + POS data) an
 
 ---
 
+## LMC Summary Endpoint
+
+### Overview
+Returns the LMC info header and YTD summary cards (with contribution ratios) for a single LMC. Use this to populate the top section of the LMC detail page: the four stat cards and the wallet balance card.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/lmc/{id}/summary/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/summary/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above; LMC owner for their own LMC
+
+### Sample Request
+
+```bash
+GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/summary/
+Authorization: Bearer <token>
+```
+
+### Response
+
+```json
+{
+  "lmc_info": {
+    "name": "Sallyrich Blessed Enterprise",
+    "address": "",
+    "phone": "+233205595253",
+    "pos_issued": 0,
+    "pos_trading": 0,
+    "wallet_balance": 634.02
+  },
+  "summary": {
+    "ytd_sales": 2623.50,
+    "ytd_topups": 8979.00,
+    "ytd_winnings": 63000.00,
+    "writers_count": 11,
+    "ytd_sales_ratio": 73,
+    "ytd_topups_ratio": 61,
+    "ytd_winnings_ratio": 94,
+    "writers_ratio": 32,
+    "wallet_balance": 634.02,
+    "today_deposits": 971.88
+  }
+}
+```
+
+### Response Field Descriptions
+
+#### `lmc_info`
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | LMC owner's full name |
+| `address` | string | LMC physical address |
+| `phone` | string | Owner's phone number |
+| `pos_issued` | integer | POS devices issued (from latest snapshot) |
+| `pos_trading` | integer | POS devices currently trading (from latest snapshot) |
+| `wallet_balance` | decimal | Current airtime wallet balance |
+
+#### `summary`
+| Field | Type | Description |
+|-------|------|-------------|
+| `ytd_sales` | decimal | Year-to-date total ticket sales for this LMC |
+| `ytd_topups` | decimal | Year-to-date total top-ups paid out to writers |
+| `ytd_winnings` | decimal | Year-to-date total winnings for this LMC's writers |
+| `writers_count` | integer | Live count of writers in this LMC |
+| `ytd_sales_ratio` | integer | This LMC's YTD sales as % of all LMCs (0–100) |
+| `ytd_topups_ratio` | integer | This LMC's YTD top-ups as % of all LMCs (0–100) |
+| `ytd_winnings_ratio` | integer | This LMC's YTD winnings as % of all LMCs (0–100) |
+| `writers_ratio` | integer | This LMC's writer count as % of all writers (0–100) |
+| `wallet_balance` | decimal | Current airtime wallet balance (mirrors `lmc_info`) |
+| `today_deposits` | decimal | Total successful deposits into the wallet today |
+
+> **UI Mapping:** `wallet_balance` → the large GHS figure on the wallet card. `today_deposits` → the "Today GHS X.XX" label beneath it.
+
+---
+
 ## LMC Writers Overview Endpoint
 
 ### Overview
-Returns detailed information for a single LMC: LMC info header, YTD summary cards with contribution ratios, and a paginated/filterable writers table.
+Returns a paginated, filterable writers table for a single LMC. Use this to populate the writers tab below the summary cards. Each tab click sends a single `status` filter — do **not** combine multiple status values.
 
 ### Request
 
@@ -1094,6 +1326,8 @@ Returns detailed information for a single LMC: LMC info header, YTD summary card
 
 **Route:** `/api/v1/lmc/{id}/writers-overview/`
 
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/writers-overview/`
+
 **Authentication:** Required (Bearer Token)
 
 **Permissions:** Operator or above; LMC owner for their own LMC
@@ -1102,54 +1336,89 @@ Returns detailed information for a single LMC: LMC info header, YTD summary card
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | Filter writers by status: `active`, `passive`, `inactive`, `recover`, `no_use` |
+| `status` | string | Filter by **one** status tab. See UI Tab Mapping below. |
 | `search` | string | Search writers by name |
 | `page` | integer | Page number (default: 1) |
-| `page_size` | integer | Results per page (default: 10, max: 1000) |
+| `page_size` | integer | Results per page (default: 10) |
+
+### UI Tab Mapping
+
+| UI Tab | Query |
+|--------|-------|
+| **View All** | No `status` parameter |
+| **Active** | `?status=active` |
+| **Passive** | `?status=passive` |
+| **Inactive** | `?status=inactive` |
+| **Recover** | `?status=recover` |
+| **No Use** | `?status=no_use` |
+
+### Sample Requests
+
+```bash
+# View All writers (no filter)
+GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/writers-overview/
+
+# Active tab
+GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/writers-overview/?status=active
+
+# Page 2
+GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/writers-overview/?status=active&page=2
+```
+
+### Response
+
+```json
+{
+  "count": 11,
+  "next": "https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/writers-overview/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": "9cc70f47-b97e-4af5-8c99-de3bfecd9017",
+      "name": "Akwasi Ofori",
+      "contact": "+233552950898",
+      "sign_up_date": "2026-03-01T17:57:25.638000Z",
+      "dop": 41,
+      "dot": 17,
+      "ytd_sales": "178398.00",
+      "ytd_topups": "996669.00",
+      "status": "recover"
+    },
+    {
+      "id": "78f9e5c2-1f65-44a4-8843-6485d59f56e6",
+      "name": "Bemah Rose",
+      "contact": "+233598195262",
+      "sign_up_date": "2026-03-01T17:57:25.640000Z",
+      "dop": 41,
+      "dot": 0,
+      "ytd_sales": "0.00",
+      "ytd_topups": "0.00",
+      "status": "no_use"
+    }
+  ]
+}
+```
 
 ### Response Field Descriptions
 
-#### `lmc_info`
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Owner's full name |
-| `address` | string | LMC physical address |
-| `phone` | string | Owner's phone number |
-| `pos_issued` | integer | POS devices issued (from snapshot) |
-| `pos_trading` | integer | POS devices trading (from snapshot) |
-| `wallet_balance` | decimal | Current airtime wallet balance |
-
-#### `summary`
-| Field | Type | Description |
-|-------|------|-------------|
-| `ytd_sales` | decimal | Year-to-date total ticket sales for this LMC |
-| `ytd_topups` | decimal | Year-to-date total top-ups for this LMC |
-| `ytd_winnings` | decimal | Year-to-date total winnings for this LMC |
-| `writers_count` | integer | Live count of writers belonging to this LMC |
-| `ytd_sales_ratio` | integer | This LMC's sales as a % of all LMCs (0–100) |
-| `ytd_topups_ratio` | integer | This LMC's top-ups as a % of all LMCs (0–100) |
-| `ytd_winnings_ratio` | integer | This LMC's winnings as a % of all LMCs (0–100) |
-| `writers_ratio` | integer | This LMC's writer count as a % of all writers (0–100) |
-
-#### Writer Row Fields
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID | Writer's unique identifier |
 | `name` | string | Writer's full name |
 | `contact` | string | Writer's phone number |
-| `sign_up_date` | datetime | When the writer was created |
+| `sign_up_date` | datetime | When the writer was registered |
 | `dop` | integer | Days on platform (days since sign-up) |
 | `dot` | integer | Days of trading (distinct days with sales YTD) |
 | `ytd_sales` | decimal | Writer's year-to-date ticket sales |
 | `ytd_topups` | decimal | Writer's year-to-date top-ups received |
-| `status` | string | Writer's current status (`active`, `passive`, `inactive`, `recover`, `no_use`) |
+| `status` | string | Writer's current status |
 
 ---
 
 ## LMC Transactions Endpoint
 
 ### Overview
-Returns a unified, paginated transaction ledger for a single LMC. Merges commissions, top-ups, and deposits into one chronological list with a running balance column.
+Returns a unified, paginated transaction ledger for a single LMC. Merges commissions, top-ups (to writers), and deposits (into LMC wallet) into one chronological list with a running balance column. Each tab click sends a single `type` filter — do **not** combine multiple type values.
 
 ### Request
 
@@ -1157,6 +1426,8 @@ Returns a unified, paginated transaction ledger for a single LMC. Merges commiss
 
 **Route:** `/api/v1/lmc/{id}/transactions/`
 
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/lmc/{id}/transactions/`
+
 **Authentication:** Required (Bearer Token)
 
 **Permissions:** Operator or above; LMC owner for their own LMC
@@ -1165,12 +1436,12 @@ Returns a unified, paginated transaction ledger for a single LMC. Merges commiss
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `type` | string | Filter by type: `commission`, `topup`, `transfer`. Omit for all. |
+| `type` | string | Filter by **one** transaction type tab. See UI Tab Mapping below. |
 | `search` | string | Search by source name or phone number |
-| `date_from` | string | Start date filter (YYYY-MM-DD) |
-| `date_to` | string | End date filter (YYYY-MM-DD) |
+| `date_from` | string | Start date filter `YYYY-MM-DD` |
+| `date_to` | string | End date filter `YYYY-MM-DD` |
 | `page` | integer | Page number (default: 1) |
-| `page_size` | integer | Results per page (default: 30, max: 1000) |
+| `page_size` | integer | Results per page (default: 30) |
 
 ### UI Tab Mapping
 
@@ -1181,26 +1452,81 @@ Returns a unified, paginated transaction ledger for a single LMC. Merges commiss
 | **Top-ups** | `?type=topup` |
 | **Transfers** | `?type=transfer` |
 
+### Sample Requests
+
+```bash
+# View All transactions (no filter)
+GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/
+
+# Commissions tab
+GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/?type=commission
+
+# View All, page 2
+GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/?page=2
+```
+
+### Response
+
+```json
+{
+  "count": 45,
+  "next": "https://onassismystrocore-production.up.railway.app/api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "date": "Sun, 05 April 2026",
+      "time": "03:56 PM",
+      "type": "commission",
+      "source_name": "Akwasi Ofori",
+      "source_phone": "+233552950898",
+      "reference": null,
+      "amount": "125.50",
+      "balance": "634.02"
+    },
+    {
+      "date": "Sat, 04 April 2026",
+      "time": "10:22 AM",
+      "type": "topup",
+      "source_name": "Bemah Rose",
+      "source_phone": "+233598195262",
+      "reference": "TRF-00123",
+      "amount": "500.00",
+      "balance": "508.52"
+    },
+    {
+      "date": "Fri, 03 April 2026",
+      "time": "08:15 AM",
+      "type": "transfer",
+      "source_name": null,
+      "source_phone": "+233205595253",
+      "reference": "DEP-98765",
+      "amount": "1000.00",
+      "balance": "1008.52"
+    }
+  ]
+}
+```
+
 ### Response Field Descriptions
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `date` | string | Formatted date (e.g. "Sun, 05 April 2026") |
-| `time` | string | Formatted time (e.g. "03:56 PM") |
-| `type` | string | Transaction type: `commission`, `topup`, or `transfer` |
-| `source_name` | string/null | Writer's full name (null for deposits) |
-| `source_phone` | string/null | Writer's phone or mobile money number |
-| `reference` | string/null | Payment reference (null for commissions) |
+| `date` | string | Formatted date e.g. `"Sun, 05 April 2026"` |
+| `time` | string | Formatted time e.g. `"03:56 PM"` |
+| `type` | string | `commission`, `topup`, or `transfer` |
+| `source_name` | string/null | Writer's full name; `null` for deposit transfers |
+| `source_phone` | string/null | Writer's phone or mobile money number used |
+| `reference` | string/null | Payment reference; `null` for commissions |
 | `amount` | decimal | Transaction amount in GHS |
-| `balance` | decimal | Running wallet balance after this transaction |
+| `balance` | decimal | Running LMC wallet balance after this transaction |
 
 ### Transaction Types
 
 | Type | Direction | Description |
 |------|-----------|-------------|
-| `commission` | IN (+) | Commission earned from a writer's top-up (3.5% of top-up amount) |
-| `topup` | OUT (-) | Airtime transferred from LMC wallet to a writer |
-| `transfer` | IN (+) | Deposit into LMC wallet (via mobile money) |
+| `commission` | IN (+) | Commission earned from a writer's top-up (% of top-up amount) |
+| `topup` | OUT (−) | Airtime transferred from LMC wallet to a writer |
+| `transfer` | IN (+) | Deposit into LMC wallet via mobile money |
 
 ---
 
