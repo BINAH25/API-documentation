@@ -14,53 +14,58 @@
 8. [Winning Statistics Endpoint](#winning-statistics-endpoint)
 9. [Best & Worst Performance Endpoint](#best--worst-performance-endpoint)
 10. [YTD Retention Rate Endpoint](#ytd-retention-rate-endpoint)
-11. [Top 10 Writers Endpoint](#top-10-writers-endpoint)
+11. [Retention Rate Trend Endpoint](#retention-rate-trend-endpoint)
+12. [Top 10 Writers Endpoint](#top-10-writers-endpoint)
 
 ### LMCs
-12. [Available LMC Owners Endpoint](#available-lmc-owners-endpoint)
-13. [Register LMC Endpoint](#register-lmc-endpoint)
-14. [Get All LMC Owners Endpoint](#get-all-lmc-owners-endpoint)
-15. [Edit LMC Endpoint](#edit-lmc-endpoint)
-16. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
-17. [LMC Summary Endpoint](#lmc-summary-endpoint)
-18. [LMC Writers Overview Endpoint](#lmc-writers-overview-endpoint)
-19. [LMC Transactions Endpoint](#lmc-transactions-endpoint)
+13. [Available LMC Owners Endpoint](#available-lmc-owners-endpoint)
+14. [Register LMC Endpoint](#register-lmc-endpoint)
+15. [Get All LMC Owners Endpoint](#get-all-lmc-owners-endpoint)
+16. [Edit LMC Endpoint](#edit-lmc-endpoint)
+17. [LMC Detail Cards Endpoint](#lmc-detail-cards-endpoint)
+18. [LMC Summary Endpoint](#lmc-summary-endpoint)
+19. [LMC Writers Overview Endpoint](#lmc-writers-overview-endpoint)
+20. [LMC Transactions Endpoint](#lmc-transactions-endpoint)
 
 ### Writers Registration
-18. [Register Writer Endpoint](#register-writer-endpoint)
+21. [Register Writer Endpoint](#register-writer-endpoint)
 
 ### Draws & Winnings
-19. [Draws & Winnings Endpoint](#draws--winnings-endpoint)
-20. [Draws & Winnings Table Endpoint](#draws--winnings-table-endpoint)
-21. [Draw Event Tickets Endpoint](#draw-event-tickets-endpoint)
+22. [Draws & Winnings Endpoint](#draws--winnings-endpoint)
+23. [Draws & Winnings Table Endpoint](#draws--winnings-table-endpoint)
+24. [Draw Event Tickets Endpoint](#draw-event-tickets-endpoint)
 
 ### Admin Users
-22. [List Admin Users Endpoint](#list-admin-users-endpoint)
-23. [Create Admin User Endpoint](#create-admin-user-endpoint)
-24. [Edit Admin User Endpoint](#edit-admin-user-endpoint)
-25. [Activity Logs Endpoint](#activity-logs-endpoint)
+25. [List Admin Users Endpoint](#list-admin-users-endpoint)
+26. [Create Admin User Endpoint](#create-admin-user-endpoint)
+27. [Edit Admin User Endpoint](#edit-admin-user-endpoint)
+28. [Activity Logs Endpoint](#activity-logs-endpoint)
 
-### Writer Dashboard 
-26. [All Writers List Endpoint](#all-writers-list-endpoint)
-27. [Writer Profile Endpoint](#writer-profile-endpoint)
-28. [Writer Sales Endpoint](#writer-sales-endpoint)
-29. [Writer Winnings Endpoint](#writer-winnings-endpoint)
-30. [Writer Top-Ups Endpoint](#writer-top-ups-endpoint)
-31. [Writer Cashouts Endpoint](#writer-cashouts-endpoint)
+### Writer Dashboard
+29. [All Writers List Endpoint](#all-writers-list-endpoint)
+30. [Writer Profile Endpoint](#writer-profile-endpoint)
+31. [Writer Sales Endpoint](#writer-sales-endpoint)
+32. [Writer Winnings Endpoint](#writer-winnings-endpoint)
+33. [Writer Top-Ups Endpoint](#writer-top-ups-endpoint)
+34. [Writer Cashouts Endpoint](#writer-cashouts-endpoint)
 
 ### Analytics continuation
-32. [Sales Card Endpoint](#sales-card-endpoint)
-33. [Net Top-Ups Card Endpoint](#net-top-ups-card-endpoint)
-34. [Writers@Work Card Endpoint](#writerswork-card-endpoint)
-35. [Wins Card Endpoint](#wins-card-endpoint)
-36. [Liquidation Card Endpoint](#liquidation-card-endpoint)
-37. [Settlements Card Endpoint](#settlements-card-endpoint)
+35. [Sales Card Endpoint](#sales-card-endpoint)
+36. [Net Top-Ups Card Endpoint](#net-top-ups-card-endpoint)
+37. [Writers@Work Card Endpoint](#writerswork-card-endpoint)
+38. [Wins Card Endpoint](#wins-card-endpoint)
+39. [Liquidation Card Endpoint](#liquidation-card-endpoint)
+40. [Settlements Card Endpoint](#settlements-card-endpoint)
 
 ### Sales Continuation
-38. [Today's Claims Endpoint](#todays-claims-endpoint)
-39. [Today's Wins Endpoint](#todays-wins-endpoint)
-40. [Winning Events Endpoint](#winning-events-endpoint)
-41. [Winners List Endpoint](#winners-list-endpoint)
+41. [Today's Claims Endpoint](#todays-claims-endpoint)
+42. [Today's Wins Endpoint](#todays-wins-endpoint)
+43. [Winning Events Endpoint](#winning-events-endpoint)
+44. [Winners List Endpoint](#winners-list-endpoint)
+
+### Reports
+45. [List Reports Endpoint](#list-reports-endpoint)
+46. [Execute Report Endpoint](#execute-report-endpoint)
 
 ---
 
@@ -610,6 +615,136 @@ Net Income       = Sum of CLAIMED wins only (money paid to players)
 Retention Amount = Gross Sales - Net Income
 Retention Rate   = (Retention Amount / Gross Sales) × 100, formatted as "X.XX%"
 ```
+
+---
+
+## Retention Rate Trend Endpoint
+
+### Overview
+Returns the Retention Rate trend data for the bar chart. Supports a **30-day daily** breakdown and a **12-month monthly** breakdown, controlled by the `days` query param — matching the **30 days** / **1 year** toggle in the UI. Also returns the YTD RR headline figure shown above the chart.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/financials/dashboard/retention-rate-trend/`
+
+**Base URL:** `https://onassismystrocore-production.up.railway.app/api/v1/financials/dashboard/retention-rate-trend/`
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** Operator or above
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `days` | integer | `30` | `30` = daily breakdown for last 30 days. `365` = monthly breakdown for last 12 months. Any other value defaults to `30`. |
+
+### UI Toggle Mapping
+
+| UI Button | Query |
+|-----------|-------|
+| **30 days** | `?days=30` or no param |
+| **1 year** | `?days=365` |
+
+### Sample Requests
+
+```bash
+# 30-day daily view (default)
+GET /api/v1/financials/dashboard/retention-rate-trend/
+
+# 30-day explicitly
+GET /api/v1/financials/dashboard/retention-rate-trend/?days=30
+
+# 1-year monthly view
+GET /api/v1/financials/dashboard/retention-rate-trend/?days=365
+```
+
+### Response — 30 days (`days=30`)
+
+```json
+{
+  "ytd_retention_rate": 7.59,
+  "period": {
+    "start_date": "2026-03-13",
+    "end_date": "2026-04-12",
+    "days": 30
+  },
+  "days": [
+    { "day": "2026-03-13", "retention_rate": -17 },
+    { "day": "2026-03-14", "retention_rate": -5 },
+    { "day": "2026-03-15", "retention_rate": -44 },
+    { "day": "2026-03-16", "retention_rate": 13 },
+    { "day": "2026-03-17", "retention_rate": 21 },
+    { "day": "2026-03-20", "retention_rate": 100 },
+    { "day": "2026-03-22", "retention_rate": -12 },
+    { "day": "2026-03-23", "retention_rate": -31 },
+    { "day": "2026-03-24", "retention_rate": -62 },
+    { "day": "2026-04-12", "retention_rate": 0 }
+  ]
+}
+```
+
+### Response — 1 year (`days=365`)
+
+```json
+{
+  "ytd_retention_rate": 7.59,
+  "period": {
+    "start_date": "2025-05-01",
+    "end_date": "2026-04-12",
+    "days": 365
+  },
+  "months": [
+    { "month": "May '25", "retention_rate": 13 },
+    { "month": "Jun '25", "retention_rate": -44 },
+    { "month": "Jul '25", "retention_rate": 21 },
+    { "month": "Aug '25", "retention_rate": 24 },
+    { "month": "Sep '25", "retention_rate": 100 },
+    { "month": "Oct '25", "retention_rate": 28 },
+    { "month": "Nov '25", "retention_rate": 41 },
+    { "month": "Dec '25", "retention_rate": 100 },
+    { "month": "Jan '26", "retention_rate": -31 },
+    { "month": "Feb '26", "retention_rate": 85 },
+    { "month": "Mar '26", "retention_rate": 28 },
+    { "month": "Apr '26", "retention_rate": 0 }
+  ]
+}
+```
+
+### Response Field Descriptions
+
+#### Top-level
+| Field | Type | Description |
+|-------|------|-------------|
+| `ytd_retention_rate` | float | YTD Retention Rate percentage — the headline "YTD RR: X.XX%" shown above the chart |
+| `period.start_date` | string | First date in the data range `YYYY-MM-DD` |
+| `period.end_date` | string | Today's date `YYYY-MM-DD` |
+| `period.days` | integer | The `days` param used (`30` or `365`) |
+| `days` | array | Present when `days=30`. Daily entries. |
+| `months` | array | Present when `days=365`. Monthly entries. |
+
+#### Daily entry (`days` array)
+| Field | Type | Description |
+|-------|------|-------------|
+| `day` | string | Date `YYYY-MM-DD` |
+| `retention_rate` | integer | Signed retention rate for that day. Positive = retained more than paid out (blue/green bar). Negative = paid out more (red bar). `0` if no data for that day. |
+
+#### Monthly entry (`months` array)
+| Field | Type | Description |
+|-------|------|-------------|
+| `month` | string | Month label e.g. `"Apr '26"` |
+| `retention_rate` | integer | Signed retention rate for that month, aggregated from daily snapshots. |
+
+### Calculation
+```
+Daily RR   = (net_topups - total_wins_paid) / net_topups × 100   (per DailyRetentionRate row)
+Monthly RR = (SUM(net_topups) - SUM(total_wins_paid)) / SUM(net_topups) × 100
+YTD RR     = read directly from YTDSummary.ytd_retention_rate (pre-computed nightly)
+```
+
+> **Data source:** `DailyRetentionRate` table (updated nightly by Celery beat). Days with no snapshot entry return `retention_rate: 0`.
 
 ---
 
@@ -2438,6 +2573,527 @@ These endpoints power the summary cards shown in the admin/operator UI. Each ret
 
 ---
 
+## List Reports Endpoint
+
+### Overview
+Returns the full catalogue of available reports, each with its schema — the list of columns (including which are required) and the available filter parameters. Use this to dynamically render the report selection UI.
+
+### Request
+
+**Method:** `GET`
+
+**Route:** `/api/v1/financials/reports/`
+
+**Permissions:** Operator or above
+
+**No parameters required.**
+
+### Response
+
+```json
+{
+  "status": true,
+  "message": "Reports retrieved successfully",
+  "data": [
+    {
+      "reportId": 1,
+      "name": "30 Days Sales Tracker",
+      "schema": {
+        "category": "Operations",
+        "columns": [
+          { "key": "Writer ID", "label": "Writer ID", "required": true },
+          { "key": "Writer Name", "label": "Writer Name", "required": true },
+          { "key": "30 Days Total", "label": "30 Days Total", "required": true },
+          { "key": "Day-1", "label": "Day-1", "required": true },
+          "..."
+        ],
+        "filters": [
+          { "key": "entity_name", "label": "Writer Name", "type": "text", "required": false }
+        ]
+      }
+    },
+    {
+      "reportId": 7,
+      "name": "Daily Sales",
+      "schema": {
+        "category": "Finance",
+        "columns": [
+          { "key": "Ticket Number", "label": "Ticket Number", "required": true },
+          { "key": "Writer Name", "label": "Writer Name", "required": true },
+          { "key": "Ticket Amount", "label": "Ticket Amount", "required": true }
+        ],
+        "filters": [
+          { "key": "date", "label": "Date", "type": "date", "required": false }
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Available Reports
+
+| reportId | Name | Category | Required Filters |
+|----------|------|----------|-----------------|
+| 1 | 30 Days Sales Tracker | Operations | — |
+| 2 | Bank Transfer - Batch Details | Finance | — |
+| 3 | Bank Transfers | Finance | — |
+| 5 | Commission Payments | Finance | `reference_date` |
+| 6 | Ticket Query | Finance | `ticket` |
+| 7 | Daily Sales | Finance | — |
+| 8 | Daily Sales & Winnings | Finance | `start_date`, `end_date` |
+| 9 | Finance - Payout | Finance | — |
+| 14 | Revenue Per Play | Finance | `start_date`, `end_date` |
+| 17 | Ticket Status | General | `ticket` |
+| 18 | Active Writers | General | — |
+| 19 | Terminal History | General | — |
+| 20 | Winning Stakes Report | General | — |
+| 21 | All Stakes Report | Operations | `start_date`, `end_date` |
+| 23 | Topup - Claims as Credit | Finance | — |
+| 24 | Topup - LMC Transfers | Finance | — |
+| 25 | Topup - Mobile Money | Finance | — |
+| 26 | Writers - Active Writers | General | `interval`, `year` |
+
+---
+
+## Execute Report Endpoint
+
+### Overview
+Executes a report by ID and returns the data rows. Filters are passed as a JSON body (POST) or query parameters (GET). Both methods are supported; body values take precedence over query params on conflict.
+
+### Request
+
+**Method:** `POST` (preferred) or `GET`
+
+**Route:** `/api/v1/financials/reports/{reportId}/execute/`
+
+**Permissions:** Operator or above
+
+**Body (POST):** JSON object of filter key→value pairs (optional unless the report has required filters).
+
+### Response
+
+```json
+{
+  "status": true,
+  "message": "Report executed successfully",
+  "report_name": "30 Days Sales Tracker",
+  "data": [
+    {
+      "Writer ID": "10000009",
+      "Writer Name": "Test Writer",
+      "Writer Phone": "010000000",
+      "LMC": "Onassis LMC",
+      "Device": "PHONE",
+      "Serial": null,
+      "State": "active",
+      "Days on Platform": 205,
+      "Days-to-Start": 0,
+      "Operation Days": 0,
+      "Lifetime Sales": "0.00",
+      "Avg Lifetime Sales": "0.00",
+      "30 Days Total": "0.00",
+      "30 Day Average": "0.00",
+      "Date Onboarded": "2025-09-19 13:21:11",
+      "First Transaction Datetime": null,
+      "Last Transaction Datetime": null,
+      "Day-1": "0.00",
+      "Day-2": "0.00",
+      "Day-30": "0.00"
+    }
+  ]
+}
+```
+
+### Error Response (missing required filter)
+
+```json
+{
+  "status": false,
+  "message": "ticket is required."
+}
+```
+
+### Error Response (unknown report)
+
+```json
+{
+  "status": false,
+  "message": "Report 99 not found."
+}
+```
+
+---
+
+### Report-by-Report Reference
+
+#### Report 1 — 30 Days Sales Tracker
+
+**Endpoint:** `POST /api/v1/financials/reports/1/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `entity_name` | text | No | Filter by writer name (partial match) |
+
+**Sample:**
+```bash
+POST /api/v1/financials/reports/1/execute/
+{}
+```
+
+**Columns returned:** `Writer ID`, `Writer Name`, `Writer Phone`, `LMC`, `Device`, `Serial`, `State`, `Days on Platform`, `Days-to-Start`, `Operation Days`, `Lifetime Sales`, `Avg Lifetime Sales`, `30 Days Total`, `30 Day Average`, `Date Onboarded`, `First Transaction Datetime`, `Last Transaction Datetime`, `Day-1` … `Day-30`
+
+---
+
+#### Report 2 — Bank Transfer - Batch Details
+
+**Endpoint:** `POST /api/v1/financials/reports/2/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `batch_number` | text | No | Filter by batch/transfer code |
+| `reference` | text | No | Filter by payment reference |
+
+**Columns returned:** `Writer Name`, `Writer Phone`, `LMC Name`, `LMC Phone`, `Phone Number`, `Network`, `Client Reference`, `Amount`, `Description`, `Datetime`, `Updated At`, `Batch Number`, `UUID`
+
+---
+
+#### Report 3 — Bank Transfers
+
+**Endpoint:** `POST /api/v1/financials/reports/3/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `from` | date | No | From date (YYYY-MM-DD) |
+| `to` | date | No | To date (YYYY-MM-DD) |
+| `account` | text | No | Filter by account/mobile number |
+
+**Sample:**
+```json
+{ "from": "2026-04-01", "to": "2026-04-12" }
+```
+
+**Columns returned:** `Datetime`, `Account Number`, `Reference`, `Amount`, `Success`, `Reason`, `Batch Number`, `Batch Date`
+
+---
+
+#### Report 5 — Commission Payments
+
+**Endpoint:** `POST /api/v1/financials/reports/5/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `reference_date` | date | **Yes** | Settlement period end date (YYYY-MM-DD) |
+
+**Sample:**
+```json
+{ "reference_date": "2026-03-31" }
+```
+
+**Columns returned:** `Writer`, `Phone Number`, `LMC`, `LMC Phone Number`, `Sales`, `Commission`
+
+---
+
+#### Report 6 — Ticket Query
+
+**Endpoint:** `POST /api/v1/financials/reports/6/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `ticket` | text | **Yes** | Exact ticket number |
+
+**Sample:**
+```json
+{ "ticket": "108004462026022217052416797" }
+```
+
+**Columns returned:** `Datetime`, `Ticket No.`, `Play`, `Original Stake`, `Stake`, `Amount`
+
+---
+
+#### Report 7 — Daily Sales
+
+**Endpoint:** `POST /api/v1/financials/reports/7/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `date` | date | No | Sales date (YYYY-MM-DD). Defaults to today |
+
+**Sample:**
+```json
+{ "date": "2026-04-12" }
+```
+
+**Columns returned:** `Ticket Number`, `Game`, `Writer Name`, `Writer Number`, `LMC Name`, `Datetime of Ticket`, `Ticket Amount`
+
+---
+
+#### Report 8 — Daily Sales & Winnings
+
+**Endpoint:** `POST /api/v1/financials/reports/8/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `start_date` | date | **Yes** | Start date (YYYY-MM-DD) |
+| `end_date` | date | **Yes** | End date (YYYY-MM-DD) |
+
+**Sample:**
+```json
+{ "start_date": "2026-04-01", "end_date": "2026-04-12" }
+```
+
+**Columns returned:** `Date`, `Total Writers`, `Sales`, `Gross Income`, `Winning`, `Net Income`, `Retention Rate`
+
+---
+
+#### Report 9 — Finance - Payout
+
+**Endpoint:** `POST /api/v1/financials/reports/9/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `start_date` | date | No | From date (YYYY-MM-DD) |
+| `end_date` | date | No | To date (YYYY-MM-DD) |
+
+**Columns returned:** `Writer ID`, `Writer Name`, `Writer Phone #`, `Transaction Date`, `Withdrawal`, `Bank Reference`
+
+---
+
+#### Report 14 — Revenue Per Play
+
+**Endpoint:** `POST /api/v1/financials/reports/14/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `start_date` | date | **Yes** | Start date (YYYY-MM-DD) |
+| `end_date` | date | **Yes** | End date (YYYY-MM-DD) |
+
+**Sample:**
+```json
+{ "start_date": "2026-04-01", "end_date": "2026-04-12" }
+```
+
+**Columns returned:** `Date`, `Game`, `Play Variety`, `Total Tickets`, `Total Amount`
+
+---
+
+#### Report 17 — Ticket Status
+
+**Endpoint:** `POST /api/v1/financials/reports/17/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `ticket` | text | **Yes** | Exact ticket number |
+
+**Sample:**
+```json
+{ "ticket": "108004462026022217052416797" }
+```
+
+**Columns returned:** `Ticket`, `Event ID`, `Event Name`, `Event Display`, `Occurrence Date`, `Writer Phone`, `Player Phone`, `Stake No.`, `Stake Amount`, `Payout`, `Status`, `Reason`, `Created At`, `Payout Time`
+
+---
+
+#### Report 18 — Active Writers
+
+**Endpoint:** `POST /api/v1/financials/reports/18/execute/`
+
+**Filters:** None
+
+**Columns returned:** `id`, `name`, `phone_number`, `terminal_number`, `location`, `created_at`
+
+---
+
+#### Report 19 — Terminal History
+
+**Endpoint:** `POST /api/v1/financials/reports/19/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `terminal_number` | text | No | Filter by serial number (partial match) |
+| `mac_address` | text | No | Filter by device identifier (partial match) |
+
+> **Note:** `Terminal` and `MAC Address` both map to the device's `serial_number` field — this is the single unique identifier stored per POS/App/Web device.
+
+**Columns returned:** `Terminal`, `MAC Address`, `Writer Name`, `Phone Number`, `First Use`
+
+---
+
+#### Report 20 — Winning Stakes Report
+
+**Endpoint:** `POST /api/v1/financials/reports/20/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `start_date` | date | No | From stake date (YYYY-MM-DD) |
+| `end_date` | date | No | To stake date (YYYY-MM-DD) |
+| `ticket` | text | No | Filter by ticket number (partial match) |
+
+**Sample:**
+```json
+{ "start_date": "2026-04-01", "end_date": "2026-04-12" }
+```
+
+**Columns returned:** `Writer`, `LMC`, `Ticket`, `Purchase Amount`, `Stake`, `Draw`, `Event`, `Play`, `Variety`, `Payout`, `Date of Stake`, `Date of Winning`
+
+---
+
+#### Report 21 — All Stakes Report
+
+**Endpoint:** `POST /api/v1/financials/reports/21/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `start_date` | date | **Yes** | Start date (YYYY-MM-DD) |
+| `end_date` | date | **Yes** | End date (YYYY-MM-DD) |
+
+**Sample:**
+```json
+{ "start_date": "2026-04-12", "end_date": "2026-04-12" }
+```
+
+**Sample Response:**
+```json
+{
+  "status": true,
+  "message": "Report executed successfully",
+  "report_name": "All Stakes Report",
+  "data": [
+    {
+      "ticket": "108004462026041200001",
+      "ticket_number": "108004462026041200001",
+      "writer_name": "Kwame Asante",
+      "writer_phone_number": "0241234567",
+      "lmc_name": "Onassis LMC",
+      "lmc_phone_number": "0201234567",
+      "game_name": "5/90 Original",
+      "event_name": "Sunday Aseda",
+      "event_round": 412,
+      "play_variety_name": "Direct 2 (2 Sure)",
+      "stake_status_name": "active",
+      "stake_number": [14, 29],
+      "stake_amount": "0.50",
+      "payout": null,
+      "date": "2026-04-12"
+    }
+  ]
+}
+```
+
+**Columns returned:** `ticket`, `ticket_number`, `writer_name`, `writer_phone_number`, `lmc_name`, `lmc_phone_number`, `game_name`, `event_name`, `event_round`, `play_variety_name`, `stake_status_name`, `stake_number`, `stake_amount`, `payout`, `date`
+
+---
+
+#### Report 23 — Topup - Claims as Credit
+
+**Endpoint:** `POST /api/v1/financials/reports/23/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `from` | date | No | From date (YYYY-MM-DD) |
+| `to` | date | No | To date (YYYY-MM-DD) |
+
+**Columns returned:** `Writer Name`, `Writer Phone`, `LMC Name`, `LMC Phone`, `Phone Number`, `Network`, `Client Reference`, `Amount`, `Description`, `Datetime`, `Updated At`, `Batch Number`, `UUID`
+
+---
+
+#### Report 24 — Topup - LMC Transfers
+
+**Endpoint:** `POST /api/v1/financials/reports/24/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `from` | date | No | From date (YYYY-MM-DD) |
+| `to` | date | No | To date (YYYY-MM-DD) |
+
+**Columns returned:** `Writer Name`, `Writer Phone`, `LMC Name`, `LMC Phone`, `Phone Number`, `Network`, `Client Reference`, `Amount`, `Description`, `Datetime`, `Updated At`, `Batch Number`, `UUID`
+
+---
+
+#### Report 25 — Topup - Mobile Money
+
+**Endpoint:** `POST /api/v1/financials/reports/25/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `from` | date | No | From date (YYYY-MM-DD) |
+| `to` | date | No | To date (YYYY-MM-DD) |
+
+**Columns returned:** `Writer Name`, `Writer Phone`, `LMC Name`, `LMC Phone`, `Phone Number`, `Network`, `Client Reference`, `Amount`, `Net Value`, `Description`, `Batch Number`, `UUID`, `Datetime`, `Updated At`
+
+---
+
+#### Report 26 — Writers - Active Writers
+
+**Endpoint:** `POST /api/v1/financials/reports/26/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `interval` | text | **Yes** | `daily` or `monthly` |
+| `year` | text | **Yes** | 4-digit year e.g. `2026` |
+
+**Sample (monthly):**
+```json
+{ "interval": "monthly", "year": "2026" }
+```
+
+**Sample Response:**
+```json
+{
+  "status": true,
+  "message": "Report executed successfully",
+  "report_name": "Writers - Active Writers",
+  "data": [
+    { "period": "Jan 2026", "active_writers": 1240 },
+    { "period": "Feb 2026", "active_writers": 1318 },
+    { "period": "Mar 2026", "active_writers": 1402 }
+  ]
+}
+```
+
+**Sample (daily):**
+```json
+{ "interval": "daily", "year": "2026" }
+```
+
+**Columns returned:** `period`, `active_writers`
+
+---
+
 ## Authentication
 
 All endpoints require JWT token authentication.
@@ -2467,6 +3123,7 @@ Response: {"access": "new_token..."}
 
 | Date | Change |
 |------|--------|
+| 2026-04-12 | Added Reports endpoints documentation (List Reports, Execute Report — 19 reports) |
 | 2026-04-07 | Added Dashboard Card Endpoints documentation |
 | 2026-04-07 | Added Sales & Wins Dashboard Endpoints: `today_claims`, `today_wins`, `winning_events`, `winners_list` |
 | 2026-04-02 | Initial API documentation published |
