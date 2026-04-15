@@ -66,6 +66,7 @@
 ### Reports
 45. [List Reports Endpoint](#list-reports-endpoint)
 46. [Execute Report Endpoint](#execute-report-endpoint)
+47. [Available Float Endpoint](#available-float-endpoint)
 
 ---
 
@@ -393,6 +394,47 @@ Returns a list of all available game types with their configuration details.
 | `total_topup_amount` | float | Total top up amount as a numeric value for calculations |
 | `topup_count` | integer | Number of top up transactions recorded today |
 | `currency` | string | Currency code (always "GHS") |
+
+---
+
+## Available Float Endpoint
+
+### Endpoint: Get Total Available Float
+
+**Route:** `GET /api/v1/writers/available-float/`
+
+**Description:** Returns the total available float — the sum of `airtime_balance` across all writer airtime wallets. This is the "Available Float" figure shown on the admin panel.
+
+**Authentication:** Required (Bearer Token)
+
+**Permissions:** `IsWriterOrAbove`
+
+### Response Format
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "available_float": "GHS 124,064.43",
+  "available_float_amount": 124064.43,
+  "currency": "GHS"
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `available_float` | string | Total airtime balance across all writers, formatted with currency |
+| `available_float_amount` | float | Raw numeric total for calculations |
+| `currency` | string | Currency code (always "GHS") |
+
+### cURL Example
+
+```bash
+curl -X GET https://onassismystrocore-production.up.railway.app/api/v1/writers/available-float/ \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ---
 
@@ -2661,6 +2703,8 @@ Returns the full catalogue of available reports, each with its schema — the li
 ### Overview
 Executes a report by ID and returns the data rows. Filters are passed as a JSON body (POST) or query parameters (GET). Both methods are supported; body values take precedence over query params on conflict.
 
+The response includes a `download_url` that returns the **same data as a styled Excel (.xlsx) file**.
+
 ### Request
 
 **Method:** `POST` (preferred) or `GET`
@@ -2678,6 +2722,8 @@ Executes a report by ID and returns the data rows. Filters are passed as a JSON 
   "status": true,
   "message": "Report executed successfully",
   "report_name": "30 Days Sales Tracker",
+  "count": 1,
+  "download_url": "http://localhost:8000/api/v1/financials/reports/1/download/",
   "data": [
     {
       "Writer ID": "10000009",
@@ -2704,6 +2750,27 @@ Executes a report by ID and returns the data rows. Filters are passed as a JSON 
   ]
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `count` | Number of data rows returned |
+| `download_url` | URL to download the same data as an Excel file |
+| `data` | Array of row objects |
+
+### Excel Download
+
+**Method:** `GET`
+
+**Route:** `/api/v1/financials/reports/{reportId}/download/?filter=value`
+
+Pass the same filters as query params. Returns an `.xlsx` file with styled headers, auto-sized columns, and frozen header row.
+
+**Example:**
+```
+GET /api/v1/financials/reports/27/download/?from_date=2026-04-11&to_date=2026-04-12
+```
+
+**Content-Type:** `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
 
 ### Error Response (missing required filter)
 
@@ -3094,6 +3161,66 @@ POST /api/v1/financials/reports/1/execute/
 
 ---
 
+#### Report 27 — Export Top-Ups
+
+**Endpoint:** `POST /api/v1/financials/reports/27/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `from_date` | date | **Yes** | Start date (YYYY-MM-DD) |
+| `to_date` | date | **Yes** | End date (YYYY-MM-DD) |
+
+**Sample:**
+```json
+{ "from_date": "2026-04-11", "to_date": "2026-04-12" }
+```
+
+**Columns returned:** `Date`, `Writer ID`, `Writer Name`, `Writer Phone`, `LMC`, `Amount (GHS)`, `Airtime Credited`, `Method`, `Reference`, `Created By`
+
+---
+
+#### Report 28 — Export Sales
+
+**Endpoint:** `POST /api/v1/financials/reports/28/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `from_date` | date | **Yes** | Start date (YYYY-MM-DD) |
+| `to_date` | date | **Yes** | End date (YYYY-MM-DD) |
+
+**Sample:**
+```json
+{ "from_date": "2026-04-11", "to_date": "2026-04-12" }
+```
+
+**Columns returned:** `Date`, `Ticket No`, `Writer ID`, `Writer Name`, `Writer Phone`, `LMC`, `Game`, `Draw Event`, `Stakes`, `Amount (GHS)`, `Status`, `Channel`, `Player Phone`
+
+---
+
+#### Report 29 — Export Wins
+
+**Endpoint:** `POST /api/v1/financials/reports/29/execute/`
+
+**Filters:**
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `from_date` | date | **Yes** | Start date (YYYY-MM-DD) |
+| `to_date` | date | **Yes** | End date (YYYY-MM-DD) |
+
+**Sample:**
+```json
+{ "from_date": "2026-04-11", "to_date": "2026-04-12" }
+```
+
+**Columns returned:** `Date Won`, `Ticket No`, `Writer ID`, `Writer Name`, `Writer Phone`, `LMC`, `Game`, `Draw Event`, `Ticket Amount (GHS)`, `Win Amount (GHS)`, `Status`, `Claimed At`, `Expires At`
+
+---
+
 ## Authentication
 
 All endpoints require JWT token authentication.
@@ -3123,7 +3250,9 @@ Response: {"access": "new_token..."}
 
 | Date | Change |
 |------|--------|
-| 2026-04-12 | Added Reports endpoints documentation (List Reports, Execute Report — 19 reports) |
+| 2026-04-13 | All 21 reports now return JSON data + `download_url` for Excel; added `/reports/{id}/download/` endpoint |
+| 2026-04-13 | Moved Excel exports (Top-Ups, Sales, Wins) into Reports system as reports 27, 28, 29 |
+| 2026-04-12 | Added Reports endpoints documentation (List Reports, Execute Report — 18 reports) |
 | 2026-04-07 | Added Dashboard Card Endpoints documentation |
 | 2026-04-07 | Added Sales & Wins Dashboard Endpoints: `today_claims`, `today_wins`, `winning_events`, `winners_list` |
 | 2026-04-02 | Initial API documentation published |
