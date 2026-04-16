@@ -35,38 +35,45 @@
 23. [Draws & Winnings Table Endpoint](#draws--winnings-table-endpoint)
 24. [Draw Event Tickets Endpoint](#draw-event-tickets-endpoint)
 
+### Draw Result Dual-Approval
+25. [Submit Draw Numbers Endpoint](#submit-draw-numbers-endpoint)
+26. [Pending Approvals Endpoint](#pending-approvals-endpoint)
+27. [Confirm Draw Result Endpoint](#confirm-draw-result-endpoint)
+28. [Reject Draw Result Endpoint](#reject-draw-result-endpoint)
+29. [Approval Status Endpoint](#approval-status-endpoint)
+
 ### Admin Users
-25. [List Admin Users Endpoint](#list-admin-users-endpoint)
-26. [Create Admin User Endpoint](#create-admin-user-endpoint)
-27. [Edit Admin User Endpoint](#edit-admin-user-endpoint)
-28. [Activity Logs Endpoint](#activity-logs-endpoint)
+30. [List Admin Users Endpoint](#list-admin-users-endpoint)
+31. [Create Admin User Endpoint](#create-admin-user-endpoint)
+32. [Edit Admin User Endpoint](#edit-admin-user-endpoint)
+33. [Activity Logs Endpoint](#activity-logs-endpoint)
 
 ### Writer Dashboard
-29. [All Writers List Endpoint](#all-writers-list-endpoint)
-30. [Writer Profile Endpoint](#writer-profile-endpoint)
-31. [Writer Sales Endpoint](#writer-sales-endpoint)
-32. [Writer Winnings Endpoint](#writer-winnings-endpoint)
-33. [Writer Top-Ups Endpoint](#writer-top-ups-endpoint)
-34. [Writer Cashouts Endpoint](#writer-cashouts-endpoint)
+34. [All Writers List Endpoint](#all-writers-list-endpoint)
+35. [Writer Profile Endpoint](#writer-profile-endpoint)
+36. [Writer Sales Endpoint](#writer-sales-endpoint)
+37. [Writer Winnings Endpoint](#writer-winnings-endpoint)
+38. [Writer Top-Ups Endpoint](#writer-top-ups-endpoint)
+39. [Writer Cashouts Endpoint](#writer-cashouts-endpoint)
 
 ### Analytics continuation
-35. [Sales Card Endpoint](#sales-card-endpoint)
-36. [Net Top-Ups Card Endpoint](#net-top-ups-card-endpoint)
-37. [Writers@Work Card Endpoint](#writerswork-card-endpoint)
-38. [Wins Card Endpoint](#wins-card-endpoint)
-39. [Liquidation Card Endpoint](#liquidation-card-endpoint)
-40. [Settlements Card Endpoint](#settlements-card-endpoint)
+40. [Sales Card Endpoint](#sales-card-endpoint)
+41. [Net Top-Ups Card Endpoint](#net-top-ups-card-endpoint)
+42. [Writers@Work Card Endpoint](#writerswork-card-endpoint)
+43. [Wins Card Endpoint](#wins-card-endpoint)
+44. [Liquidation Card Endpoint](#liquidation-card-endpoint)
+45. [Settlements Card Endpoint](#settlements-card-endpoint)
 
 ### Sales Continuation
-41. [Today's Claims Endpoint](#todays-claims-endpoint)
-42. [Today's Wins Endpoint](#todays-wins-endpoint)
-43. [Winning Events Endpoint](#winning-events-endpoint)
-44. [Winners List Endpoint](#winners-list-endpoint)
+46. [Today's Claims Endpoint](#todays-claims-endpoint)
+47. [Today's Wins Endpoint](#todays-wins-endpoint)
+48. [Winning Events Endpoint](#winning-events-endpoint)
+49. [Winners List Endpoint](#winners-list-endpoint)
 
 ### Reports
-45. [List Reports Endpoint](#list-reports-endpoint)
-46. [Execute Report Endpoint](#execute-report-endpoint)
-47. [Available Float Endpoint](#available-float-endpoint)
+50. [List Reports Endpoint](#list-reports-endpoint)
+51. [Execute Report Endpoint](#execute-report-endpoint)
+52. [Available Float Endpoint](#available-float-endpoint)
 
 ---
 
@@ -1892,6 +1899,236 @@ GET /api/v1/lmc/1a0dadec-9498-4a66-a51f-8345ae433c32/transactions/?page=2
 | `player_phone` | string | Player phone number |
 | `stake_status` | string | Status in uppercase (e.g. "ACTIVE", "LOST", "WON") |
 | `writer` | object/null | Writer info `{id, name, phone}` or null |
+
+---
+
+## Submit Draw Numbers Endpoint
+
+**Route:** `POST /api/v1/games/events/{id}/result/`
+
+**Description:** Submit winning numbers for a draw event. Creates a pending approval that must be confirmed by a second authorized user before the draw result is finalized. This is the first step of the dual-approval process.
+
+**Permissions:** `IsDrawMasterOrAbove` — requires role `draw_master`, `operator`, or `admin`.
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Draw event ID |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `numbers` | array | Yes | Array of winning numbers (integers). Will be sorted automatically. |
+
+### Example Request
+
+```json
+{
+  "numbers": [45, 12, 78, 3, 56]
+}
+```
+
+### Success Response (202 Accepted)
+
+```json
+{
+  "message": "Numbers submitted and pending confirmation by a second authorised user.",
+  "approval_id": "uuid",
+  "submitted_by": "admin@onassis.com",
+  "numbers": [3, 12, 45, 56, 78],
+  "status": "pending"
+}
+```
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| 400 | `numbers` field missing or not a list |
+| 400 | Draw result already exists for this event |
+| 400 | A pending approval already exists for this event |
+
+---
+
+## Pending Approvals Endpoint
+
+**Route:** `GET /api/v1/games/events/pending-approvals/`
+
+**Description:** Lists all draw events that have pending number submissions awaiting confirmation. This is a collection-level endpoint so the reviewing user does not need to know the specific event ID.
+
+**Permissions:** `IsDrawMasterOrAbove`
+
+### Success Response (200 OK)
+
+```json
+{
+  "count": 1,
+  "pending_approvals": [
+    {
+      "approval_id": "uuid",
+      "draw_event_id": "uuid",
+      "draw_event_label": "#4 Morning VAG – Apr 06, 2025",
+      "numbers": [3, 12, 45, 56, 78],
+      "submitted_by": "admin@onassis.com",
+      "submitted_at": "2025-04-06T14:30:00Z",
+      "confirm_url": "/api/v1/games/events/{id}/confirm-result/",
+      "reject_url": "/api/v1/games/events/{id}/reject-result/"
+    }
+  ]
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | integer | Total number of pending approvals |
+| `pending_approvals[].approval_id` | UUID | Approval record ID |
+| `pending_approvals[].draw_event_id` | UUID | Draw event ID |
+| `pending_approvals[].draw_event_label` | string | Human-readable event label |
+| `pending_approvals[].numbers` | array | Submitted winning numbers (sorted) |
+| `pending_approvals[].submitted_by` | string | Full name or email of submitter |
+| `pending_approvals[].submitted_at` | string | ISO 8601 submission timestamp |
+| `pending_approvals[].confirm_url` | string | URL to confirm this approval |
+| `pending_approvals[].reject_url` | string | URL to reject this approval |
+
+---
+
+## Confirm Draw Result Endpoint
+
+**Route:** `POST /api/v1/games/events/{id}/confirm-result/`
+
+**Description:** Confirms a pending draw number submission and finalizes the draw result. The confirming user must be a different person from the one who submitted the numbers (dual-approval enforcement).
+
+**Permissions:** `IsDrawMasterOrAbove`
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Draw event ID |
+
+### Request Body
+
+No body required.
+
+### Success Response (201 Created)
+
+```json
+{
+  "message": "Draw result confirmed and recorded.",
+  "draw_result": {
+    "id": "uuid",
+    "numbers": [3, 12, 45, 56, 78]
+  },
+  "confirmed_by": "operator@onassis.com"
+}
+```
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| 404 | No pending approval found for this draw event |
+| 403 | Same user who submitted is trying to confirm |
+
+---
+
+## Reject Draw Result Endpoint
+
+**Route:** `POST /api/v1/games/events/{id}/reject-result/`
+
+**Description:** Rejects a pending draw number submission. The submitter can then re-submit corrected numbers. The rejecting user must be different from the submitter.
+
+**Permissions:** `IsDrawMasterOrAbove`
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Draw event ID |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `reason` | string | No | Optional reason for rejection |
+
+### Example Request
+
+```json
+{
+  "reason": "Number 78 looks incorrect, please verify."
+}
+```
+
+### Success Response (200 OK)
+
+```json
+{
+  "message": "Submission rejected.",
+  "rejected_by": "operator@onassis.com",
+  "reason": "Number 78 looks incorrect, please verify."
+}
+```
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| 404 | No pending approval found for this draw event |
+| 403 | Same user who submitted is trying to reject |
+
+---
+
+## Approval Status Endpoint
+
+**Route:** `GET /api/v1/games/events/{id}/approval-status/`
+
+**Description:** Returns the current pending approval (if any) and the full approval history for a specific draw event.
+
+**Permissions:** `IsDrawMasterOrAbove`
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Draw event ID |
+
+### Success Response (200 OK)
+
+```json
+{
+  "pending": {
+    "approval_id": "uuid",
+    "numbers": [3, 12, 45, 56, 78],
+    "submitted_by": "admin@onassis.com",
+    "submitted_at": "2025-04-06T14:30:00Z",
+    "status": "pending"
+  },
+  "history": [
+    {
+      "approval_id": "uuid",
+      "numbers": [3, 12, 45, 56, 78],
+      "submitted_by": "admin@onassis.com",
+      "reviewed_by": "operator@onassis.com",
+      "status": "rejected",
+      "reject_reason": "Number 78 looks incorrect.",
+      "submitted_at": "2025-04-06T13:00:00Z",
+      "reviewed_at": "2025-04-06T13:15:00Z"
+    }
+  ]
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pending` | object/null | Current pending approval or `null` |
+| `history` | array | All past approvals (approved/rejected) ordered newest first |
 
 ---
 
